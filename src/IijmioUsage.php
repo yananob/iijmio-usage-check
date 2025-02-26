@@ -2,48 +2,86 @@
 
 namespace MyApp;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Cookie\CookieJar;
+use yananob\MyTools\Logger;
+
 final class IijmioUsage
 {
-    private array $iijmio_config;
-    private int $send_each_n_days;
     private $debugDate;
+    private Logger $logger;
 
-    public function __construct(array $iijmio_config, int $send_each_n_days)
+    public function __construct(private object $iijmioConfig, private int $sendEachNDays)
     {
-        $this->iijmio_config = $iijmio_config;
-        $this->send_each_n_days = $send_each_n_days;
-        $this->debugDate = null;
+        $this->logger = new Logger(get_class($this));
     }
 
-    public function setDebugDate(string $debugDate): void
+    // public function setDebugDate(string $debugDate): void
+    // {
+    //     $this->debugDate = date_create($debugDate);
+    // }
+
+    public function getStats(): array
     {
-        $this->debugDate = date_create($debugDate);
+        $packetInfo = $this->__crawl();
+        return $this->__judgeResult($packetInfo);
     }
 
-    public function callApi(): object
+    private function __crawl(): object
     {
-        $headers = [
-            "contentType: application/x-www-form-urlencoded",
-            "X-IIJmio-Developer: {$this->iijmio_config['developer_id']}",
-            "X-IIJmio-Authorization: {$this->iijmio_config['token']}",
-        ];
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_URL => "https://api.iijmio.jp/mobile/d/v2/log/packet/",
-                CURLOPT_HTTPGET => true,
-                CURLOPT_HTTPHEADER => $headers,
+        $client = new Client([
+            'base_uri' => 'https://www.iijmio.jp/',
+            'timeout'  => 30.0,
         ]);
-        $result = curl_exec($ch);
-        $httpcode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        if ($httpcode != "200") {
-            throw new \Exception("Request error. Http response code: [{$httpcode}]");
-        }
-        curl_close($ch);
-        return json_decode($result);
+        $cookieJar = new CookieJar();
+
+        $response = $client->post(
+            "/api/member/login",
+            [
+                "headers" => $this->__getHttpHeaders(),
+                "cookies" => $cookieJar,
+                "form_params" => [
+                    "mioId" => $this->iijmioConfig->mioId,
+                    "password"  => $this->iijmioConfig->password,
+                ],
+            ]
+        );
+        $this->__checkResponse($response);
+        var_dump($response);
+
+        $response = $client->post(
+            "/api/member/top",
+            [
+                "headers" => $this->__getHttpHeaders(),
+                "cookies" => $cookieJar,
+                "form_params" => [
+                    "billingFlag" => true,
+                    "serviceCode"  => "",
+                ],
+            ]
+        );
+        $this->__checkResponse($response);
+        var_dump($response);
+
+        return $response;
     }
 
-    public function judgeResult($packetInfo): array
+    private function __getHttpHeaders(): array
+    {
+        return [
+            // これを与えないと、HTMLが結構変わったり、検索時の書籍名がより短い（モバイル向け？）ものになる
+            "User-Agent" => "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+        ];
+    }
+
+    private function __checkResponse($response): void
+    {
+        if (!in_array($response->getStatusCode(), [200])) {
+            throw new \Exception("Request error. [" . $response->getStatusCode() . "] " . $response->getReasonPhrase());
+        }
+    }
+
+    private function __judgeResult($packetInfo): array
     {
         $today = date("Ymd");
         $today_day = (int)date("d");
@@ -74,12 +112,12 @@ final class IijmioUsage
 
         $isSend = False;
         $isWarning = False;
-        $max_usage = $this->iijmio_config["max_usage"];
+        $max_usage = $this->iijmioConfig->max_usage;
 
         $today_usage_list = "";
         $today_usage_total = 0;
         foreach ($today_usages as $hdo_user => $usage) {
-            $today_usage_list .= "  {$this->iijmio_config['users'][$hdo_user]}: {$usage}MB\n";
+            $today_usage_list .= "  {$this->iijmioConfig->users->$hdo_user}: {$usage}MB\n";
             $today_usage_total += $usage;
         }
 
@@ -91,7 +129,7 @@ final class IijmioUsage
             $isSend = True;
             $isWarning = True;
         }
-        if ($today_day % $this->send_each_n_days == 0) {
+        if ($today_day % $this->sendEachNDays == 0) {
             $isSend = True;
         }
         $subject = $isWarning ? "[WARN] Mobile usage is not good" : "[INFO] Mobile usage report";
