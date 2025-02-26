@@ -1,39 +1,38 @@
 <?php declare(strict_types=1);
 
+use Carbon\Carbon;
 use PHPUnit\Framework\TestCase;
 use MyApp\IijmioUsage;
-use MyApp\common\Utils;
+use yananob\MyTools\Utils;
+use yananob\MyTools\Test;
 
 final class IijmioUsageTest extends TestCase
 {
-    // can't call with dummy developer id
-    // public function testCallApi(): void
-    // {
-    //     $config = Utils::getConfig(dirname(__FILE__) . "/../configs/config.json");
-    //     $iijmio = new IijmioUsage(
-    //         $config["iijmio"], 5
-    //     );
-    //     $result = $iijmio->callApi();
-    //     $this->assertNotNull($result);
-    // }
+    private object $config;
+
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->config = Utils::getConfig(path: __DIR__ . "/../configs/config.json", asArray: false);
+    }
+
+    public function testCrawl(): void
+    {
+        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio, sendEachNDays: 1);
+        $hoge = Test::invokePrivateMethod($iijmio, "__crawl");
+        $this->assertEmpty($hoge);
+    }
 
     public function testJudgeResult(): void
     {
         $contents = file_get_contents(dirname(__FILE__) . "/usage_data.json");
         $contents_json = json_decode($contents);
 
+        Carbon::setTestNow(new Carbon('2023-07-15 12:00:00'));
+
         // OK case
-        $iijmio = new IijmioUsage([
-            "developer_id" => "dummy",
-            "token" => "dummy",
-            "users" => [
-                "hdo12345601" => "user1",
-                "hdo12345602" => "user2"
-            ],
-            "max_usage" => 730
-        ], 10);
-        $iijmio->setDebugDate("2023/07/15");
-        $alert_info = $iijmio->judgeResult($contents_json);
+        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio, sendEachNDays: 1);
+        $hoge = Test::invokePrivateMethod($iijmio, "__judgeResult");
 
         $this->assertFalse($alert_info["isSend"]);
         $message = <<<EOT

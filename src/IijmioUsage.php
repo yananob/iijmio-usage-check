@@ -35,13 +35,36 @@ final class IijmioUsage
         ]);
         $cookieJar = new CookieJar();
 
+        $response = $client->get(
+            "/auth/login/",
+            [
+                "headers" => $this->__getHttpHeaders(),
+                "cookies" => $cookieJar,
+            ]
+        );
+        $this->__checkResponse($response);
+        // var_dump($response);
+
+        $response = $client->post(
+            "/api/front/loginInfo",
+            [
+                "headers" => $this->__getHttpHeaders(),
+                "cookies" => $cookieJar,
+            ]
+        );
+        $this->__checkResponse($response);
+        var_dump((string)$response->getBody());
+
+        var_dump($this->iijmioConfig);
+        var_dump($this->iijmioConfig->mio_id);
+        var_dump($this->iijmioConfig->password);
         $response = $client->post(
             "/api/member/login",
             [
                 "headers" => $this->__getHttpHeaders(),
                 "cookies" => $cookieJar,
                 "form_params" => [
-                    "mioId" => $this->iijmioConfig->mioId,
+                    "mioId" => $this->iijmioConfig->mio_id,
                     "password"  => $this->iijmioConfig->password,
                 ],
             ]
