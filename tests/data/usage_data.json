@@ -1,0 +1,75 @@
+{
+    "serviceInfoList": [
+        {
+            "dataShareNotCovered": false,
+            "serviceCode": "hdc12345678",
+            "totalCapacity": 2.00,
+            "dataShareExistence": true,
+            "planName": "ギガプラン",
+            "chargePlan": "2",
+            "serviceName": "音声SIM",
+            "phoneNo": "090-1234-5678",
+            "couponData": [
+                {
+                    "adjustmentCoupon": false,
+                    "sequenceNo": 0,
+                    "month": "202502",
+                    "couponValue": 4.56
+                },
+                {
+                    "sequenceNo": 1,
+                    "month": "202503",
+                    "couponValue": 14.00
+                },
+                {
+                    "sequenceNo": 2,
+                    "month": "202504",
+                    "couponValue": 0.00
+                },
+                {
+                    "sequenceNo": 3,
+                    "month": "202505",
+                    "couponValue": 0.00
+                }
+            ]
+        },
+        {
+            "serviceCode": "hdc22345678",
+            "totalCapacity": 2.00,
+            "planName": "ギガプラン",
+            "chargePlan": "2",
+            "serviceName": "音声SIM",
+            "phoneNo": "090-2234-5678",
+            "couponData": []
+        },
+        {
+            "serviceCode": "hdc32345678",
+            "totalCapacity": 5.00,
+            "planName": "ギガプラン",
+            "chargePlan": "5",
+            "serviceName": "音声SIM",
+            "phoneNo": "090-3234-5678",
+            "couponData": []
+        }
+    ],
+    "billSummary": {
+        "amount": "4000",
+        "miowari": "2000",
+        "month": "202501"
+    },
+    "isVoiceEsim": true,
+    "hasVouchers": false,
+    "hasHdcContract": true,
+    "hasUsingHdcVoiceSim": true,
+    "usagePeriod": "1年1ヵ月",
+    "isMoreThirteenMonth": true,
+    "isReceivedIijNews": true,
+    "prefixList": [
+        "hdc",
+        "hdg",
+        "hdo"
+    ],
+    "receivedIijNews": true,
+    "voiceEsim": true,
+    "moreThirteenMonth": true
+}

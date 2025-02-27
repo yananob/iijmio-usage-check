@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- chatbot -->
+
+
+
+
+
+
+<!-- ============================================================ -->
+
+
+
+
+
+
+
+<!-- EditableArea ========================================================== -->
+
+<script type="text/javascript">
+  function submitForm(serviceCnt) {
+    var target = $("#form_"+serviceCnt)
+    target.submit()
+  }
+</script>
+
+
+<!DOCTYPE html>
+<html lang="ja">
+
+<link rel="stylesheet" href="/resources/WebContent/style/normalize.css" />
+<link rel="stylesheet" href="/resources/WebContent/style/service-global.css" />
+<link rel="stylesheet" href="/resources/WebContent/style/jquery_service_sidr.css">
+<link rel="stylesheet" href="/resources/WebContent/style/campaignMessageBx.css">
+<link rel="stylesheet" media="print" href="/resources/WebContent/style/print.css">
+<link rel="stylesheet" href="/resources/WebContent/style/service-hdc.css">
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<title>データ利用量照会（月別）</title>
+<!-- 共通 -->
+<meta charset="utf-8" />
+<meta http-equiv="Cache-Control" content="no-cache"/>
+<meta http-equiv="Expires" content="0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="author" content="info@iijmio.jp">
+<meta name="format-detection" content="telephone=no">
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.5,initial-scale=1.0">
+<!-- /共通 -->
+
+<link rel="stylesheet" type="text/css" href="/resources/WebContent/style/common_uiux.css">
+<link rel="stylesheet" type="text/css" href="/resources/WebContent/style/header-uiux.css">
+
+<link rel="stylesheet" href="/resources/WebContent/style/service-hdc.css">
+
+
+<script src="/resources/WebContent/script/jquery-3.4.1.min.js"></script>
+<script src="/resources/WebContent/script/jquery.sidr.min.js"></script>
+<script src="/resources/WebContent/script/page_scroller.js"></script>
+<script src="/resources/WebContent/script/ie9.js"></script>
+
+<script src="/resources/WebContent/script/chatbot_popup.js"></script>
+
+
+    <!-- Google Tag Manager -->
+    <script>
+      (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+      new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+      j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+      'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+      })(window,document,'script','dataLayer','GTM-5HV4FJW');
+    </script>
+    <!-- End Google Tag Manager -->
+    <div id="global_nav">
+  
+    <!-- html表示用 -->
+    <div id="top_area" class="header_flex">
+        <div id="logoArea" class="logoArea">
+            <div class="mioLogo"><a href="/"><img src="/resources/WebContent/image/logo.jpg" alt="IIJmioロゴ" /></a></div>
+        </div>
+        
+        <div class="user_state">
+            <div id="login" class="user_state_flex">
+            
+                <span class="user_name">山田 太郎様</span>
+                <span class="user_log_flex">
+                    
+                    <a href="/auth/logout/" class="logout">ログアウト</a>
+                </span>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- PCメニュー -->
+    <div id="scroll_nav">
+        <div class="navArea">
+            <ul id="nav">
+                <a href="/member/" class="nav-line">
+                    <li>
+                        <img class="member_top" src="/resources/WebContent/image/menu_home.svg" alt="会員TOP" />
+                        <span>会員TOP</span>
+                    </li>
+                </a><!-- /.nav-line -->
+
+                <a href="/customer/contract/" class="nav-line">
+                    <li>
+                        <img class="contract_information" src="/resources/WebContent/image/menu_info.svg" alt="ご契約情報" />
+                        <span>ご契約情報</span>
+                    </li>
+                </a><!-- /.nav-line -->
+
+                <a href="/customer/bill/" class="nav-line">
+                    <li>
+                        <img class="payment" src="/resources/WebContent/image/menu_price.svg" alt="料金・お支払い" />
+                        <span>料金・お支払い</span>
+                    </li>
+                </a><!-- /.nav-line -->
+
+                <a href="/service/" class="nav-line">
+                    <li>
+                        <img class="procedure_inquiry" src="/resources/WebContent/image/menu_inquiry.svg" alt="手続き・照会" />
+                        <span>手続き・照会</span>
+                    </li>
+                </a><!-- /.nav-line -->
+
+                <a href="/support/" class="nav-line">
+                    <li>
+                        <img class="support" src="/resources/WebContent/image/menu_support.svg" alt="サポート" />
+                        <span>サポート</span>
+                    </li>
+                </a><!-- /.nav-line -->
+            </ul><!-- #nav -->
+        </div><!-- /.nav_Area -->
+    </div><!-- /.scroll_nav -->
+    
+  
+  </div><!-- /#global_nav -->
+</head>
+  <body>
+      <div class="service-container">
+        <div class="service-title">
+          <h1>データ利用量照会（月別）</h1>
+        </div>
+        <div>
+          <!-- instruction  -->
+          <div class="service-headline">4か月間のデータ利用量を照会します。</div>
+          <div class="viewdata-instruction">
+            <table>
+              <tr>
+                <td>※月別のデータ利用量照会は2021年6月以降のデータのみご確認いただけます。<br>
+　2021年5月以前のデータ利用量は実際の利用量に関わらず「データ利用はありません」と表示されるのでご注意ください。</td>
+              </tr>
+            </table>
+          </div>
+          <!-- /instruction  -->
+                                
+                                <div class="viewdata">
+                                  <div class="viewdata-title row">
+                                    <div> <b>090-1234-5678
+                                     <span class="plan">
+                                    （音声・タイプD）
+                                     </span></b><br>
+                                      hdc12345678（
+                                      
+                                      5ギガプラン）
+                                      GD1234567890123 </div>
+                                    <div>
+                                      <form id="form_3" action="/service/setup/hdc/viewmonthlydata/" method="POST">
+                                        <input id="hdoCode" name="hdoCode" value="hdo12345678" type="hidden" value=""/>
+                                        <div class="mio-btn-sm -lightblue arrow-left viewdata-btn">
+                                          <a class="viewdata-btn-a" href="javascript:submitForm(3)">過去1年分を表示</a>
+                                        </div>
+                                      <div>
+<input type="hidden" name="_csrf" value="XXXX-XXXX-XXXX-XXXX-XXXX" />
+</div></form>
+                                    </div>
+                                  </div>
+                                  <table class="viewdatatbl">
+                                    <tr>
+                                      <td class="viewdata-header1">対象月</td>
+                                      <td class="viewdata-header2">高速通信利用量</td>
+                                      <td class="viewdata-header3">低速通信利用量</td>
+                                    </tr>
+                                    
+                                      
+                                      
+                                        
+                                          
+                                            <tr class="viewdata-detail-row">
+                                              <td class="viewdata-detail-cell1">
+                                                2025年02月
+                                              </td>
+                                              <td class="viewdata-detail-cell2">
+                                                5.3GB </td>
+                                              <td class="viewdata-detail-cell3">
+                                                
+                                                
+                                                  0.0GB 
+                                              </td>
+                                            </tr>
+                                          
+                                        
+                                      
+                                    
+                                      
+                                      
+                                        
+                                          
+                                            <tr class="viewdata-detail-row">
+                                              <td class="viewdata-detail-cell1">
+                                                2025年01月
+                                              </td>
+                                              <td class="viewdata-detail-cell2">
+                                                5.3GB </td>
+                                              <td class="viewdata-detail-cell3">
+                                                
+                                                
+                                                  0.0GB 
+                                              </td>
+                                            </tr>
+                                          
+                                        
+                                      
+                                    
+                                      
+                                      
+                                        
+                                          
+                                            <tr class="viewdata-detail-row">
+                                              <td class="viewdata-detail-cell1">
+                                                2024年12月
+                                              </td>
+                                              <td class="viewdata-detail-cell2">
+                                                6.36GB </td>
+                                              <td class="viewdata-detail-cell3">
+                                                
+                                                
+                                                  0.0GB 
+                                              </td>
+                                            </tr>
+                                          
+                                        
+                                      
+                                    
+                                      
+                                      
+                                        
+                                          
+                                            <tr class="viewdata-detail-row">
+                                              <td class="viewdata-detail-cell1">
+                                                2024年11月
+                                              </td>
+                                              <td class="viewdata-detail-cell2">
+                                                5.36GB </td>
+                                              <td class="viewdata-detail-cell3">
+                                                
+                                                
+                                                  0.0GB 
+                                              </td>
+                                            </tr>
+                                          
+                                        
+                                      
+                                    
+                                  </table>
+                                </div>
+                              
+                          
+                        
+                
+                  
+                    
+                    
+                    
+                    
+                      
+                        
+                        
+                          
+                            
+                              
+                              
+                              
+                                
+                                
+                                <div class="viewdata">
+                                  <div class="viewdata-title row">
+                                    <div> <b>090-9696-7332
+                                     <span class="plan">
+                                    （音声・タイプD）
+                                     </span></b><br>
+                                      hdc22345678（
+                                      
+                                      5ギガプラン）
+                                      GD2234567890123 </div>
+                                    <div>
+                                      <form id="form_4" action="/service/setup/hdc/viewmonthlydata/" method="POST">
+                                        <input id="hdoCode" name="hdoCode" value="hdo22345678" type="hidden" value=""/>
+                                        <div class="mio-btn-sm -lightblue arrow-left viewdata-btn">
+                                          <a class="viewdata-btn-a" href="javascript:submitForm(4)">過去1年分を表示</a>
+                                        </div>
+                                      <div>
+<input type="hidden" name="_csrf" value="XXXX-XXXX-XXXX-XXXX-XXXX" />
+</div></form>
+                                    </div>
+                                  </div>
+                                  <table class="viewdatatbl">
+                                    <tr>
+                                      <td class="viewdata-header1">対象月</td>
+                                      <td class="viewdata-header2">高速通信利用量</td>
+                                      <td class="viewdata-header3">低速通信利用量</td>
+                                    </tr>
+                                    
+                                      
+                                      
+                                        
+                                          
+                                            <tr class="viewdata-detail-row">
+                                              <td class="viewdata-detail-cell1">
+                                                2025年02月
+                                              </td>
+                                              <td class="viewdata-detail-cell2">
+                                                1.64GB </td>
+                                              <td class="viewdata-detail-cell3">
+                                                
+                                                
+                                                  0.0GB 
+                                              </td>
+                                            </tr>
+                                          
+                                        
+                                      
+                                    
+                                      
+                                      
+                                        
+                                          
+                                            <tr class="viewdata-detail-row">
+                                              <td class="viewdata-detail-cell1">
+                                                2025年01月
+                                              </td>
+                                              <td class="viewdata-detail-cell2">
+                                                2.1GB </td>
+                                              <td class="viewdata-detail-cell3">
+                                                
+                                                
+                                                  0.0GB 
+                                              </td>
+                                            </tr>
+                                          
+                                        
+                                      
+                                    
+                                      
+                                      
+                                        
+                                          
+                                            <tr class="viewdata-detail-row">
+                                              <td class="viewdata-detail-cell1">
+                                                2024年12月
+                                              </td>
+                                              <td class="viewdata-detail-cell2">
+                                                1.99GB </td>
+                                              <td class="viewdata-detail-cell3">
+                                                
+                                                
+                                                  0.0GB 
+                                              </td>
+                                            </tr>
+                                          
+                                        
+                                      
+                                    
+                                      
+                                      
+                                        
+                                          
+                                            <tr class="viewdata-detail-row">
+                                              <td class="viewdata-detail-cell1">
+                                                2024年11月
+                                              </td>
+                                              <td class="viewdata-detail-cell2">
+                                                2.29GB </td>
+                                              <td class="viewdata-detail-cell3">
+                                                
+                                                
+                                                  0.0GB 
+                                              </td>
+                                            </tr>
+                                          
+                                        
+                                      
+                                    
+                                  </table>
+                                </div>
+                              
+                          
+                        
+                
+            
+          
+        </div>
+      </div>
+    <!-- /EditableArea -->
+    
+
+
+<link rel="stylesheet" type="text/css" href="/resources/WebContent/style/footer-uiux.css">
+<footer>
+  
+    <div class="footer_main1">
+      <div class="footer_list clearfix">
+        <div class="footer_map">
+          <ul>
+            <li class="footer_map_01"><a href="/thissite/">このサイトのご利用について</a></li>
+            <li class="footer_map_02"><a href="http://www.iij.ad.jp/securitypolicy/" target="_blank">情報セキュリティ基本方針</a></li>
+            <li class="footer_map_01"><a href="/sitemap.html">サイトマップ</a></li>
+            <li class="footer_map_01 w180"><a href="/member/cancellation/">初期契約解除について</a></li>
+          </ul>
+          <ul>
+            <li class="footer_map_02"><a href="http://www.iij.ad.jp/privacy/" target="_blank">個人情報保護ポリシー</a></li>
+            <li class="footer_map_01"><a href="/tokusho/">「特定商取引に関する法律」「古物営業法」に基づく表示</a></li>
+            <li class="footer_map_01 w180"><a href="/contact.html">お問い合わせ</a></li>
+          </ul>
+        </div>
+        <div class="page_top">
+          <a href="#top" id="page-top" style=""><img src="/resources/WebContent/image/page-top.png" alt="page top"></a>
+        </div>
+      </div> <!-- / .footer_list -->
+    </div>
+    <div class="footer_info">
+        <div class="footer_body">
+            <div class="footer_main2 clearfix">
+                <div class="ft_smp_w">
+                    <div class="ft_logo">
+                        <a href="http://www.iij.ad.jp/" target="_blank">
+                            <img src="/resources/common/image/footer-logo.jpg" alt="IIJ">
+                        </a>
+                    </div>
+                    <div class="ft_info">
+                        <p>IIJmioは株式会社インターネットイニシアティブが提供する個人向けインターネットサービスです</p>
+                        <p class="kigyou"><a href="http://www.iij.ad.jp/company/" target="_blank">企業情報はこちら</a></p>
+                        <p class="copy pc">©2005-<script type="text/javascript">document.write(new Date().getFullYear());</script> Internet Initiative Japan Inc.</p>
+                    </div>
+                </div>
+                <div class="copy_smp sp">©2005-<script type="text/javascript">document.write(new Date().getFullYear());</script> Internet Initiative Japan Inc.</div>
+            </div>
+        </div><!-- / .footer_body -->
+    </div><!-- / .footer_info -->
+    
+</footer>
+
+  </body>
+</html>

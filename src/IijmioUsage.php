@@ -23,8 +23,8 @@ final class IijmioUsage
 
     public function getStats(): array
     {
-        $packetInfo = $this->__crawl();
-        return $this->__judgeResult($packetInfo);
+        $json = $this->__crawl();
+        return $this->__judgeResult($json);
     }
 
     private function __crawl(): string

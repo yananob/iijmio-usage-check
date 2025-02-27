@@ -19,26 +19,25 @@ final class IijmioUsageTest extends TestCase
     public function testCrawl(): void
     {
         $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio, sendEachNDays: 1);
-        $hoge = Test::invokePrivateMethod($iijmio, "__crawl");
-        $this->assertEmpty($hoge);
+        $json = Test::invokePrivateMethod($iijmio, "__crawl");
+        $this->assertEmpty($json);
     }
 
     public function testJudgeResult(): void
     {
-        $contents = file_get_contents(dirname(__FILE__) . "/usage_data.json");
-        $contents_json = json_decode($contents);
+        $contents = json_decode(file_get_contents(__DIR__ . "/usage_data.json"), true);
 
-        Carbon::setTestNow(new Carbon('2023-07-15 12:00:00'));
+        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio, sendEachNDays: 5);
 
         // OK case
-        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio, sendEachNDays: 1);
-        $hoge = Test::invokePrivateMethod($iijmio, "__judgeResult");
+        Carbon::setTestNow(new Carbon('2023-07-14 12:00:00'));
+        $result = Test::invokePrivateMethod($iijmio, "__judgeResult", $contents);
 
-        $this->assertFalse($alert_info["isSend"]);
+        $this->assertFalse($result->isSendAlert);
         $message = <<<EOT
 [INFO] Mobile usage report
 
-Today [20230715]
+Today [20230714]
   user1: 50MB
   user2: 60MB
 
