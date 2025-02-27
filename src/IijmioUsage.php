@@ -27,7 +27,7 @@ final class IijmioUsage
         return $this->__judgeResult($packetInfo);
     }
 
-    private function __crawl(): object
+    private function __crawl(): string
     {
         $client = new Client([
             'base_uri' => 'https://www.iijmio.jp/',
@@ -36,65 +36,88 @@ final class IijmioUsage
         $cookieJar = new CookieJar();
 
         $response = $client->get(
-            "/auth/login/",
+            "/member/",
             [
-                "headers" => $this->__getHttpHeaders(),
+                "headers" => $this->__getHttpHeaders(null),
                 "cookies" => $cookieJar,
             ]
         );
         $this->__checkResponse($response);
         // var_dump($response);
 
-        $response = $client->post(
-            "/api/front/loginInfo",
-            [
-                "headers" => $this->__getHttpHeaders(),
-                "cookies" => $cookieJar,
-            ]
-        );
-        $this->__checkResponse($response);
-        var_dump((string)$response->getBody());
+        // $response = $client->get(
+        //     "/auth/login/",
+        //     [
+        //         "headers" => $this->__getHttpHeaders(),
+        //         "cookies" => $cookieJar,
+        //     ]
+        // );
+        // $this->__checkResponse($response);
+        // // var_dump($response);
 
-        var_dump($this->iijmioConfig);
-        var_dump($this->iijmioConfig->mio_id);
-        var_dump($this->iijmioConfig->password);
+        // $response = $client->post(
+        //     "/api/front/loginInfo",
+        //     [
+        //         "headers" => $this->__getHttpHeaders(),
+        //         "cookies" => $cookieJar,
+        //     ]
+        // );
+        // $this->__checkResponse($response);
+        // var_dump((string)$response->getBody());
+
         $response = $client->post(
             "/api/member/login",
             [
-                "headers" => $this->__getHttpHeaders(),
+                "headers" => $this->__getHttpHeaders("application/json"),
                 "cookies" => $cookieJar,
-                "form_params" => [
+                "json" => [
                     "mioId" => $this->iijmioConfig->mio_id,
                     "password"  => $this->iijmioConfig->password,
                 ],
             ]
         );
         $this->__checkResponse($response);
-        var_dump($response);
+        // var_dump($response);
+
+        // $response = $client->post(
+        //     "/api/member/getPermissionInfo",
+        //     [
+        //         "headers" => $this->__getHttpHeaders(),
+        //         "cookies" => $cookieJar,
+        //     ]
+        // );
+        // $this->__checkResponse($response);
+        // var_dump($response);
 
         $response = $client->post(
             "/api/member/top",
             [
-                "headers" => $this->__getHttpHeaders(),
+                "headers" => $this->__getHttpHeaders("application/json"),
                 "cookies" => $cookieJar,
-                "form_params" => [
+                "json" => [
                     "billingFlag" => true,
                     "serviceCode"  => "",
                 ],
             ]
         );
         $this->__checkResponse($response);
-        var_dump($response);
+        var_dump((string)$response->getBody());
 
-        return $response;
+        return (string)$response->getBody();
     }
 
-    private function __getHttpHeaders(): array
+    private function __getHttpHeaders(?string $contentType): array
     {
-        return [
+        $result =  [
             // これを与えないと、HTMLが結構変わったり、検索時の書籍名がより短い（モバイル向け？）ものになる
-            "User-Agent" => "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+            "User-Agent" => "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36",
         ];
+
+        if (!empty($contentType)) {
+            $result["Content-Type"] = $contentType;
+        }
+
+        return $result;
     }
 
     private function __checkResponse($response): void
