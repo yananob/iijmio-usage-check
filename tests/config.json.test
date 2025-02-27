@@ -1,6 +1,16 @@
 {
-    "key1": "value1",
-    "key2": {
-        "key2-1": "value2-1"
+    "iijmio": {
+        "mio_id": "MA1234567",
+        "password": "hogehoge",
+        "users": {
+            "hdo12345678": "user1",
+            "hdo22345678": "user2",
+        },
+        "max_usage": 14000
+    },
+    "alert": {
+        "bot": "v_bot",
+        "target": "v_target",
+        "send_usage_each_n_days": 10
     }
 }

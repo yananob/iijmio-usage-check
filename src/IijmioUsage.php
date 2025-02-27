@@ -16,18 +16,13 @@ final class IijmioUsage
         $this->logger = new Logger(get_class($this));
     }
 
-    // public function setDebugDate(string $debugDate): void
-    // {
-    //     $this->debugDate = date_create($debugDate);
-    // }
-
     public function getStats(): array
     {
         $json = $this->__crawl();
         return $this->__judgeResult($json);
     }
 
-    private function __crawl(): string
+    private function __crawl(): array
     {
         $client = new Client([
             'base_uri' => 'https://www.iijmio.jp/',
@@ -45,26 +40,6 @@ final class IijmioUsage
         $this->__checkResponse($response);
         // var_dump($response);
 
-        // $response = $client->get(
-        //     "/auth/login/",
-        //     [
-        //         "headers" => $this->__getHttpHeaders(),
-        //         "cookies" => $cookieJar,
-        //     ]
-        // );
-        // $this->__checkResponse($response);
-        // // var_dump($response);
-
-        // $response = $client->post(
-        //     "/api/front/loginInfo",
-        //     [
-        //         "headers" => $this->__getHttpHeaders(),
-        //         "cookies" => $cookieJar,
-        //     ]
-        // );
-        // $this->__checkResponse($response);
-        // var_dump((string)$response->getBody());
-
         $response = $client->post(
             "/api/member/login",
             [
@@ -77,17 +52,6 @@ final class IijmioUsage
             ]
         );
         $this->__checkResponse($response);
-        // var_dump($response);
-
-        // $response = $client->post(
-        //     "/api/member/getPermissionInfo",
-        //     [
-        //         "headers" => $this->__getHttpHeaders(),
-        //         "cookies" => $cookieJar,
-        //     ]
-        // );
-        // $this->__checkResponse($response);
-        // var_dump($response);
 
         $response = $client->post(
             "/api/member/top",
@@ -101,9 +65,19 @@ final class IijmioUsage
             ]
         );
         $this->__checkResponse($response);
-        var_dump((string)$response->getBody());
+        // var_dump((string)$response->getBody());
 
-        return (string)$response->getBody();
+        $response = $client->get(
+            "/service/setup/hdc/viewmonthlydata/",
+            [
+                "headers" => $this->__getHttpHeaders(null),
+                "cookies" => $cookieJar,
+            ]
+        );
+        $this->__checkResponse($response);
+        // var_dump((string)$response->getBody());
+
+        return $this->__parseMonthlyUsagePage((string)$response->getBody());
     }
 
     private function __getHttpHeaders(?string $contentType): array
@@ -125,6 +99,41 @@ final class IijmioUsage
         if (!in_array($response->getStatusCode(), [200])) {
             throw new \Exception("Request error. [" . $response->getStatusCode() . "] " . $response->getReasonPhrase());
         }
+    }
+
+    private function __parseMonthlyUsagePage(string $content): array
+    {
+        // 不要部分カット
+        $content = preg_replace('/<h1>データ利用量照会（月別）<\/h1>/m', "", $content);
+        // var_dump($content);
+
+        $result = [];
+        // ユーザーごとに分割
+        $contentUsers = explode('<div class="viewdata">', $content);
+        foreach ($contentUsers as $idx => $contentUser) {
+            if ($idx === 0) {
+                continue;
+            }
+
+            // <input id="hdoCode" name="hdoCode" value="hdo12345678" type="hidden" value=""/>
+            preg_match('/<input id="hdoCode" name="hdoCode" value="(hdo[0-9]+?)" type="hidden" value=""\/>/', $contentUser, $matches);
+            if (!$matches || count($matches) < 2) {
+                throw new \Exception("Could not get hdoCode usage: " . $contentUser);
+            }
+            $hdoCode = $matches[1];
+
+            // <td class="viewdata-detail-cell2">
+            // 5.3GB </td>
+            preg_match('/<td class="viewdata-detail-cell2">[\s]*?([0-9\.]+)GB[\s]*<\/td>/m', $contentUser, $matches);
+            if (!$matches || count($matches) < 2) {
+                throw new \Exception("Could not get monthly usage: " . $contentUser);
+            }
+            $usage = $matches[1];
+
+            $result[$hdoCode] = $usage;
+        }
+
+        return $result;
     }
 
     private function __judgeResult($packetInfo): array
@@ -191,9 +200,6 @@ Now: {$monthly_usage}MB  ({$monthly_usage_rate}%)
 Estimate: {$monthly_estimate_usage}MB  ({$monthly_estimate_usage_rate}%)
 EOT;
 
-        return [
-            "isSend" => $isSend,
-            "message" => $message
-        ];
+        return [$isSend, $message];
     }
 }

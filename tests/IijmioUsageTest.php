@@ -13,25 +13,39 @@ final class IijmioUsageTest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
-        $this->config = Utils::getConfig(path: __DIR__ . "/../configs/config.json", asArray: false);
+        $this->config = Utils::getConfig(path: __DIR__ . "/config.json.test", asArray: false);
     }
 
     public function testCrawl(): void
     {
         $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio, sendEachNDays: 1);
-        $json = Test::invokePrivateMethod($iijmio, "__crawl");
-        $this->assertEmpty($json);
+        $result = Test::invokePrivateMethod($iijmio, "__crawl");
+        $this->assertNotEmpty($result);
+    }
+
+    public function testParseMonthlyUsagePage(): void
+    {
+        $content = file_get_contents(__DIR__ . "/data/data_usage.html");
+        $this->assertNotFalse($content);
+        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio, sendEachNDays: 1);
+        $result = Test::invokePrivateMethod($iijmio, "__parseMonthlyUsagePage", $content);
+
+        $this->assertNotEmpty($result);
+        $this->assertArrayHasKey("hdo12345678", $result);
+        $this->assertSame("5.3", $result["hdo12345678"]);
+        $this->assertSame("1.64", $result["hdo22345678"]);
     }
 
     public function testJudgeResult(): void
     {
-        $contents = json_decode(file_get_contents(__DIR__ . "/usage_data.json"), true);
-
+        $content = file_get_contents(__DIR__ . "/data/data_usage.html");
+        $this->assertNotFalse($content);
         $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio, sendEachNDays: 5);
+        $monthlyUsage = Test::invokePrivateMethod($iijmio, "__parseMonthlyUsagePage", $content);
 
         // OK case
         Carbon::setTestNow(new Carbon('2023-07-14 12:00:00'));
-        $result = Test::invokePrivateMethod($iijmio, "__judgeResult", $contents);
+        $result = Test::invokePrivateMethod($iijmio, "__judgeResult", $monthlyUsage);
 
         $this->assertFalse($result->isSendAlert);
         $message = <<<EOT
@@ -52,19 +66,10 @@ EOT;
         );
 
         // NG case
-        $iijmio = new IijmioUsage([
-            "developer_id" => "dummy",
-            "token" => "dummy",
-            "users" => [
-                "hdo12345601" => "user1",
-                "hdo12345602" => "user2"
-            ],
-            "max_usage" => 600
-        ], 10);
-        $iijmio->setDebugDate("2023/07/15");
-        $alert_info = $iijmio->judgeResult($contents_json);
+        Carbon::setTestNow(new Carbon('2023-07-15 12:00:00'));
+        $result = Test::invokePrivateMethod($iijmio, "__judgeResult", $monthlyUsage);
 
-        $this->assertTrue($alert_info["isSend"]);
+        $this->assertTrue($result->isSendAlert);
         $message = <<<EOT
 [WARN] Mobile usage is not good
 
