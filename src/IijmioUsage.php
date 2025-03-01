@@ -2,24 +2,20 @@
 
 namespace MyApp;
 
+use Carbon\Carbon;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
-use yananob\MyTools\Logger;
+// use yananob\MyTools\Logger;
 
 final class IijmioUsage
 {
-    private $debugDate;
-    private Logger $logger;
-
-    public function __construct(private object $iijmioConfig, private int $sendEachNDays)
-    {
-        $this->logger = new Logger(get_class($this));
+    public function __construct(private object $iijmioConfig, private int $sendEachNDays = 10) {
     }
 
     public function getStats(): array
     {
-        $json = $this->__crawl();
-        return $this->__judgeResult($json);
+        [$remainingDataVolume, $monthlyUsage] = $this->__crawl();
+        return $this->__judgeResult($remainingDataVolume, $monthlyUsage);
     }
 
     private function __crawl(): array
@@ -65,7 +61,15 @@ final class IijmioUsage
             ]
         );
         $this->__checkResponse($response);
-        // var_dump((string)$response->getBody());
+        // var_dump($response);
+        $body = json_decode((string)$response->getBody(), true);
+        if (empty($body["serviceInfoList"][0]["couponData"])) {
+            throw new \Exception("Could not get couponData: " . var_export($body, true));
+        }
+        $remainingDataVolume = [];
+        foreach (json_decode((string)$response->getBody(), true)["serviceInfoList"][0]["couponData"] as $couponData) {
+            $remainingDataVolume[$couponData["month"]] = $couponData["couponValue"];
+        }
 
         $response = $client->get(
             "/service/setup/hdc/viewmonthlydata/",
@@ -76,8 +80,9 @@ final class IijmioUsage
         );
         $this->__checkResponse($response);
         // var_dump((string)$response->getBody());
+        $monthlyUsage = $this->__parseMonthlyUsagePage((string)$response->getBody());
 
-        return $this->__parseMonthlyUsagePage((string)$response->getBody());
+        return [$remainingDataVolume, $monthlyUsage];
     }
 
     private function __getHttpHeaders(?string $contentType): array
@@ -136,70 +141,44 @@ final class IijmioUsage
         return $result;
     }
 
-    private function __judgeResult($packetInfo): array
+    private function __judgeResult(array $remainingDataVolume, array $monthlyUsages): array
     {
-        $today = date("Ymd");
-        $today_day = (int)date("d");
-        $this_month = date("Ym");
-        if ($this->debugDate != null) {
-            $today = $this->debugDate->format("Ymd");
-            $today_day = (int)$this->debugDate->format("d");
-            $this_month = $this->debugDate->format("Ym");
-        }
+        $totalRemainingDataVolume = array_sum($remainingDataVolume);
+        $estimateUsage = $this->__estimateThisMonthUsage($monthlyUsages);
 
-        $monthly_usage = 0;
-        $today_usages = [];
+        $isWarning = $estimateUsage > $totalRemainingDataVolume * 0.9 ? true : false;
+        // TODO: send mail if today is the day to send alert
 
-        foreach ($packetInfo->packetLogInfo as $hdd_info) {
-            foreach ($hdd_info->hdoInfo as $hdo_info) {
-                foreach ($hdo_info->packetLog as $daily_info) {
-                    if ($this_month == date_format(date_create($daily_info->date), "Ym")) {
-                        $monthly_usage += $daily_info->withCoupon;
-                    }
-
-                    // todo: store today's info for each person
-                    if ($today == $daily_info->date) {
-                        $today_usages[$hdo_info->hdoServiceCode] = $daily_info->withCoupon;
-                    }
-                }
-            }
-        }
-
-        $isSend = False;
-        $isWarning = False;
-        $max_usage = $this->iijmioConfig->max_usage;
-
-        $today_usage_list = "";
-        $today_usage_total = 0;
-        foreach ($today_usages as $hdo_user => $usage) {
-            $today_usage_list .= "  {$this->iijmioConfig->users->$hdo_user}: {$usage}MB\n";
-            $today_usage_total += $usage;
-        }
-
-        $monthly_estimate_usage = round($monthly_usage * 31 / $today_day);
-        $monthly_usage_rate = round($monthly_usage / $max_usage * 100);
-        $monthly_estimate_usage_rate = round($monthly_estimate_usage / $max_usage * 100);
-
-        if ($monthly_estimate_usage >= $max_usage) {
-            $isSend = True;
-            $isWarning = True;
-        }
-        if ($today_day % $this->sendEachNDays == 0) {
-            $isSend = True;
-        }
         $subject = $isWarning ? "[WARN] Mobile usage is not good" : "[INFO] Mobile usage report";
+
+        $thisMonthUsageList = [];
+        foreach ($monthlyUsages as $user => $monthlyUsage) {
+            $monthlyUsage = sprintf("%.1f", $monthlyUsage);
+            $thisMonthUsageList[] = "  {$this->iijmioConfig->users->$user}: {$monthlyUsage}GB";
+        }
+        $thisMonthUsageList = implode("\n", $thisMonthUsageList);
+        $thisMonthTotalUsage = sprintf("%.1f", array_sum($monthlyUsages));
+        $thisMonthTotalUsageRate = round($thisMonthTotalUsage / $totalRemainingDataVolume * 100, 0);
+        $estimateUsageRate = round($estimateUsage / $totalRemainingDataVolume * 100, 0);
 
         $message = <<<EOT
 {$subject}
 
-Today [{$today}]
-{$today_usage_list}
-  TOTAL: {$today_usage_total}MB
+Usage:
+{$thisMonthUsageList}
+  TOTAL: {$thisMonthTotalUsage}GB  ({$thisMonthTotalUsageRate}%)
 
-Now: {$monthly_usage}MB  ({$monthly_usage_rate}%)
-Estimate: {$monthly_estimate_usage}MB  ({$monthly_estimate_usage_rate}%)
+Estimation: {$estimateUsage}GB  ({$estimateUsageRate}%)
 EOT;
 
-        return [$isSend, $message];
+        return [$isWarning, $message];
     }
+
+    private function __estimateThisMonthUsage(array $monthlyUsage): float
+    {
+        $now = new Carbon(timezone: Consts::TIMEZONE);
+
+        return round(array_sum($monthlyUsage) * $now->daysInMonth() / $now->day, 1);
+    }
+
 }
