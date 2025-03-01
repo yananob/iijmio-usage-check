@@ -1,12 +1,11 @@
 {
     "iijmio": {
-        "developer_id": "XXXX",
-        "token": "XXXX",
+        "mio_id": "MA1234567",
+        "password": "password",
         "users": {
             "hdo12345601": "user1",
             "hdo12345602": "user2"
-        },
-        "max_usage": 4000
+        }
     },
     "alert": {
         "target": "XXXX_LINE_target",
