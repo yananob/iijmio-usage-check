@@ -17,12 +17,13 @@ final class IijmioUsageTest extends TestCase
         $this->config = Utils::getConfig(path: __DIR__ . "/config.json", asArray: false);
     }
 
-    public function testCrawl(): void
-    {
-        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
-        $result = Test::invokePrivateMethod($iijmio, "__crawl");
-        $this->assertNotEmpty($result);
-    }
+    // public function testCrawl(): void
+    // {
+    //     $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
+        // REPLACE $this->config->iijmio->mio_io and password to test
+    //     $result = Test::invokePrivateMethod($iijmio, "__crawl");
+    //     $this->assertNotEmpty($result);
+    // }
 
     public function testParseMonthlyUsagePage(): void
     {
@@ -55,11 +56,12 @@ final class IijmioUsageTest extends TestCase
 [INFO] Mobile usage report
 
 Usage:
-  user1: 0.9GB
-  user2: 1.0GB
+  usr1 : 0.9GB
+  usr2 : 1.0GB
   TOTAL: 1.9GB  (29%)
 
 Estimation: 5.2GB  (80%)
+Remaining : 6.5GB
 EOT;
         $this->assertEquals($expectedMessage, $message);
 
@@ -77,11 +79,12 @@ EOT;
 [WARN] Mobile usage is not good
 
 Usage:
-  user1: 0.9GB
-  user2: 1.0GB
+  usr1 : 0.9GB
+  usr2 : 1.0GB
   TOTAL: 1.9GB  (29%)
 
 Estimation: 6.3GB  (97%)
+Remaining : 6.5GB
 EOT;
         $this->assertEquals($expectedMessage, $message);
     }

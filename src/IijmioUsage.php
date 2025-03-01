@@ -154,12 +154,13 @@ final class IijmioUsage
         $thisMonthUsageList = [];
         foreach ($monthlyUsages as $user => $monthlyUsage) {
             $monthlyUsage = sprintf("%.1f", $monthlyUsage);
-            $thisMonthUsageList[] = "  {$this->iijmioConfig->users->$user}: {$monthlyUsage}GB";
+            $thisMonthUsageList[] = "  {$this->iijmioConfig->users->$user} : {$monthlyUsage}GB";
         }
         $thisMonthUsageList = implode("\n", $thisMonthUsageList);
         $thisMonthTotalUsage = sprintf("%.1f", array_sum($monthlyUsages));
         $thisMonthTotalUsageRate = round($thisMonthTotalUsage / $totalRemainingDataVolume * 100, 0);
         $estimateUsageRate = round($estimateUsage / $totalRemainingDataVolume * 100, 0);
+        $totalRemainingDataVolume = sprintf("%.1f", $totalRemainingDataVolume);
 
         $message = <<<EOT
 {$subject}
@@ -169,6 +170,7 @@ Usage:
   TOTAL: {$thisMonthTotalUsage}GB  ({$thisMonthTotalUsageRate}%)
 
 Estimation: {$estimateUsage}GB  ({$estimateUsageRate}%)
+Remaining : {$totalRemainingDataVolume}GB
 EOT;
 
         return [$isWarning, $message];
