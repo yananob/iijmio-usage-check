@@ -14,7 +14,7 @@ final class IijmioUsageTest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
-        $this->config = Utils::getConfig(path: __DIR__ . "/config.json", asArray: false);
+        $this->config = Utils::getConfig(path: __DIR__ . "/config.json.test", asArray: false);
     }
 
     // public function testCrawl(): void
@@ -42,7 +42,7 @@ final class IijmioUsageTest extends TestCase
     {
         $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio, sendEachNDays: 5);
 
-        // OK case
+        // アラートなし（メール送信なし）
         Carbon::setTestNow(new Carbon('2024-11-11 12:00:00', timezone: Consts::TIMEZONE));
         [$isSendAlert, $message] = Test::invokePrivateMethod(
             $iijmio,
@@ -65,7 +65,17 @@ Remaining : 6.5GB
 EOT;
         $this->assertEquals($expectedMessage, $message);
 
-        // NG case
+        // アラートなし（定期メール送信あり）
+        Carbon::setTestNow(new Carbon('2024-11-20 12:00:00', timezone: Consts::TIMEZONE));
+        [$isSendAlert, $message] = Test::invokePrivateMethod(
+            $iijmio,
+            "__judgeResult",
+            ["202411" => 1.5, "202412" => 5.0],
+            ["hdo12345678" => 0.9, "hdo22345678" => 1.0],
+        );
+        $this->assertTrue($isSendAlert);
+        
+        // アラートあり
         Carbon::setTestNow(new Carbon('2024-11-09 12:00:00', timezone: Consts::TIMEZONE));
         [$isSendAlert, $message] = Test::invokePrivateMethod(
             $iijmio,

@@ -146,10 +146,17 @@ final class IijmioUsage
         $totalRemainingDataVolume = array_sum($remainingDataVolume);
         $estimateUsage = $this->__estimateThisMonthUsage($monthlyUsages);
 
-        $isWarning = $estimateUsage > $totalRemainingDataVolume * 0.9 ? true : false;
-        // TODO: send mail if today is the day to send alert
-
-        $subject = $isWarning ? "[WARN] Mobile usage is not good" : "[INFO] Mobile usage report";
+        $isSend = false;
+        if ($estimateUsage > $totalRemainingDataVolume * 0.9) {
+            $isSend = true;
+            $subject = "[WARN] Mobile usage is not good";
+        } else {
+            $subject = "[INFO] Mobile usage report";
+        }
+        $now = new Carbon(timezone: Consts::TIMEZONE);
+        if ($now->day % $this->sendEachNDays === 0) {
+            $isSend = true;
+        }
 
         $thisMonthUsageList = [];
         foreach ($monthlyUsages as $user => $monthlyUsage) {
@@ -173,13 +180,12 @@ Estimation: {$estimateUsage}GB  ({$estimateUsageRate}%)
 Remaining : {$totalRemainingDataVolume}GB
 EOT;
 
-        return [$isWarning, $message];
+        return [$isSend, $message];
     }
 
     private function __estimateThisMonthUsage(array $monthlyUsage): float
     {
         $now = new Carbon(timezone: Consts::TIMEZONE);
-
         return round(array_sum($monthlyUsage) * $now->daysInMonth() / $now->day, 1);
     }
 
