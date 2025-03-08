@@ -147,7 +147,7 @@ final class IijmioUsage
         $estimateUsage = $this->__estimateThisMonthUsage($monthlyUsages);
 
         $isSend = false;
-        if ($estimateUsage > $totalRemainingDataVolume * 0.9) {
+        if ($estimateUsage > $this->iijmioConfig->plan_data_volume * 0.9) {
             $isSend = true;
             $subject = "[WARN] Mobile usage is not good";
         } else {
@@ -167,6 +167,7 @@ final class IijmioUsage
         $thisMonthTotalUsage = sprintf("%.1f", array_sum($monthlyUsages));
         $thisMonthTotalUsageRate = round($thisMonthTotalUsage / $totalRemainingDataVolume * 100, 0);
         $estimateUsageRate = round($estimateUsage / $totalRemainingDataVolume * 100, 0);
+        $planDataVolume = sprintf("%.1f", $this->iijmioConfig->plan_data_volume);
         $totalRemainingDataVolume = sprintf("%.1f", $totalRemainingDataVolume);
 
         $message = <<<EOT
@@ -177,6 +178,7 @@ Usage:
   TOTAL: {$thisMonthTotalUsage}GB  ({$thisMonthTotalUsageRate}%)
 
 Estimation: {$estimateUsage}GB  ({$estimateUsageRate}%)
+Plan      : {$planDataVolume}GB
 Remaining : {$totalRemainingDataVolume}GB
 EOT;
 
