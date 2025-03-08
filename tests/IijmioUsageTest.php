@@ -47,7 +47,7 @@ final class IijmioUsageTest extends TestCase
         [$isSendAlert, $message] = Test::invokePrivateMethod(
             $iijmio,
             "__judgeResult",
-            ["202411" => 1.5, "202412" => 5.0],
+            ["202411" => 0.5, "202412" => 6.0],
             ["hdo12345678" => 0.9, "hdo22345678" => 1.0],
         );
 
@@ -61,6 +61,7 @@ Usage:
   TOTAL: 1.9GB  (29%)
 
 Estimation: 5.2GB  (80%)
+Plan      : 6.0GB
 Remaining : 6.5GB
 EOT;
         $this->assertEquals($expectedMessage, $message);
@@ -80,7 +81,7 @@ EOT;
         [$isSendAlert, $message] = Test::invokePrivateMethod(
             $iijmio,
             "__judgeResult",
-            ["202411" => 1.5, "202412" => 5.0],
+            ["202411" => 0.5, "202412" => 6.0],
             ["hdo12345678" => 0.9, "hdo22345678" => 1.0],
         );
 
@@ -94,6 +95,7 @@ Usage:
   TOTAL: 1.9GB  (29%)
 
 Estimation: 6.3GB  (97%)
+Plan      : 6.0GB
 Remaining : 6.5GB
 EOT;
         $this->assertEquals($expectedMessage, $message);

@@ -5,7 +5,8 @@
         "users": {
             "hdo12345678": "usr1",
             "hdo22345678": "usr2"
-        }
+        },
+        "plan_data_volume": 6
     },
     "alert": {
         "bot": "v_bot",

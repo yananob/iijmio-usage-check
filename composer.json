@@ -6,9 +6,9 @@
     "require": {
         "php": ">= 8.2",
         "google/cloud-functions-framework": "^1.3",
+        "nesbot/carbon": "^3.8",
         "yananob/my-tools": "dev-main",
-        "yananob/my-gcp-tools": "dev-main",
-        "nesbot/carbon": "^3.8"
+        "yananob/my-gcp-tools": "dev-main"
     },
     "scripts": {
         "start": [
