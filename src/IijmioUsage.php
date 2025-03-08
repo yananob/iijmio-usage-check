@@ -147,7 +147,7 @@ final class IijmioUsage
         $estimateUsage = $this->__estimateThisMonthUsage($monthlyUsages);
 
         $isSend = false;
-        if ($estimateUsage > $totalRemainingDataVolume * 0.9) {
+        if ($estimateUsage > $this->iijmioConfig->plan_data_volume * 0.9) {
             $isSend = true;
             $subject = "[WARN] Mobile usage is not good";
         } else {
