@@ -161,7 +161,7 @@ final class IijmioUsage
         $thisMonthUsageList = [];
         foreach ($monthlyUsages as $user => $monthlyUsage) {
             $monthlyUsage = sprintf("%.1f", $monthlyUsage);
-            $thisMonthUsageList[] = "  {$this->iijmioConfig->users->$user} : {$monthlyUsage}GB";
+            $thisMonthUsageList[] = "  {$this->iijmioConfig->users->$user}: {$monthlyUsage}GB";
         }
         $thisMonthUsageList = implode("\n", $thisMonthUsageList);
         $thisMonthTotalUsage = sprintf("%.1f", array_sum($monthlyUsages));
@@ -177,9 +177,9 @@ Usage:
 {$thisMonthUsageList}
   TOTAL: {$thisMonthTotalUsage}GB  ({$thisMonthTotalUsageRate}%)
 
-Estimation: {$estimateUsage}GB  ({$estimateUsageRate}%)
-Plan      : {$planDataVolume}GB
-Remaining : {$totalRemainingDataVolume}GB
+EoM: {$estimateUsage}GB  ({$estimateUsageRate}%)
+Plan: {$planDataVolume}GB
+Left: {$totalRemainingDataVolume}GB
 EOT;
 
         return [$isSend, $message];
