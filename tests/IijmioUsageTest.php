@@ -56,13 +56,13 @@ final class IijmioUsageTest extends TestCase
 [INFO] Mobile usage report
 
 Usage:
-  usr1 : 0.9GB
-  usr2 : 1.0GB
-  TOTAL: 1.9GB  (29%)
+  user1: 0.9GB
+  user2: 1.0GB
+  TOTAL: 1.9GB  (32%)
 
-Estimation: 5.2GB  (80%)
-Plan      : 6.0GB
-Remaining : 6.5GB
+EoM: 5.2GB  (87%)
+Plan: 6.0GB
+Left: 6.5GB
 EOT;
         $this->assertEquals($expectedMessage, $message);
 
@@ -90,13 +90,13 @@ EOT;
 [WARN] Mobile usage is not good
 
 Usage:
-  usr1 : 0.9GB
-  usr2 : 1.0GB
-  TOTAL: 1.9GB  (29%)
+  user1: 0.9GB
+  user2: 1.0GB
+  TOTAL: 1.9GB  (32%)
 
-Estimation: 6.3GB  (97%)
-Plan      : 6.0GB
-Remaining : 6.5GB
+EoM: 6.3GB  (105%)
+Plan: 6.0GB
+Left: 6.5GB
 EOT;
         $this->assertEquals($expectedMessage, $message);
     }

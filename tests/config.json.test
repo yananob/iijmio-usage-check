@@ -3,8 +3,8 @@
         "mio_id": "MA1234567",
         "password": "password",
         "users": {
-            "hdo12345678": "usr1",
-            "hdo22345678": "usr2"
+            "hdo12345678": "user1",
+            "hdo22345678": "user2"
         },
         "plan_data_volume": 6
     },
