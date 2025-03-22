@@ -27,7 +27,7 @@ final class IijmioUsageTest extends TestCase
 
     public function testParseMonthlyUsagePage(): void
     {
-        $content = file_get_contents(__DIR__ . "/data/data_usage.html");
+        $content = file_get_contents(__DIR__ . "/data/monthly_usage.html");
         $this->assertNotFalse($content);
         $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
         $result = Test::invokePrivateMethod($iijmio, "__parseMonthlyUsagePage", $content);
@@ -36,6 +36,19 @@ final class IijmioUsageTest extends TestCase
         $this->assertArrayHasKey("hdo12345678", $result);
         $this->assertSame("5.3", $result["hdo12345678"]);
         $this->assertSame("1.64", $result["hdo22345678"]);
+    }
+
+    public function testParseDailyUsagePage(): void
+    {
+        $content = file_get_contents(__DIR__ . "/data/daily_usage.html");
+        $this->assertNotFalse($content);
+        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
+        $result = Test::invokePrivateMethod($iijmio, "__parseDailyUsagePage", $content);
+
+        $this->assertNotEmpty($result);
+        $this->assertArrayHasKey("hdo12345678", $result);
+        $this->assertSame("0.189", $result["hdo12345678"]);
+        $this->assertSame("0.008", $result["hdo22345678"]);
     }
 
     public function testJudgeResult(): void
@@ -49,6 +62,7 @@ final class IijmioUsageTest extends TestCase
             "__judgeResult",
             ["202411" => 0.5, "202412" => 6.0],
             ["hdo12345678" => 0.9, "hdo22345678" => 1.0],
+            ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
         );
 
         $this->assertFalse($isSendAlert);
@@ -56,9 +70,9 @@ final class IijmioUsageTest extends TestCase
 [INFO] Mobile usage report
 
 Usage:
-  user1: 0.9GB
-  user2: 1.0GB
-  TOTAL: 1.9GB  (32%)
+  user1: 0.9GB  (+0.1GB)
+  user2: 1.0GB  (+0.2GB)
+  TOTAL: 1.9GB  (+0.3GB, 32%)
 
 EoM: 5.2GB  (87%)
 Plan: 6.0GB
@@ -73,16 +87,18 @@ EOT;
             "__judgeResult",
             ["202411" => 1.5, "202412" => 5.0],
             ["hdo12345678" => 0.9, "hdo22345678" => 1.0],
+            ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
         );
         $this->assertTrue($isSendAlert);
-        
-        // アラートあり
+
+        // アラートあり（使用量同じだが、日付がまだ月初に近い）
         Carbon::setTestNow(new Carbon('2024-11-09 12:00:00', timezone: Consts::TIMEZONE));
         [$isSendAlert, $message] = Test::invokePrivateMethod(
             $iijmio,
             "__judgeResult",
             ["202411" => 0.5, "202412" => 6.0],
             ["hdo12345678" => 0.9, "hdo22345678" => 1.0],
+            ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
         );
 
         $this->assertTrue($isSendAlert);
@@ -90,9 +106,9 @@ EOT;
 [WARN] Mobile usage is not good
 
 Usage:
-  user1: 0.9GB
-  user2: 1.0GB
-  TOTAL: 1.9GB  (32%)
+  user1: 0.9GB  (+0.1GB)
+  user2: 1.0GB  (+0.2GB)
+  TOTAL: 1.9GB  (+0.3GB, 32%)
 
 EoM: 6.3GB  (105%)
 Plan: 6.0GB
@@ -110,6 +126,7 @@ EOT;
             $iijmio,
             "__estimateThisMonthUsage",
             ["hdo12345678" => 1.1, "hdo22345678" => 2.2],
+            ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
         );
 
         $this->assertNotEmpty($result);
