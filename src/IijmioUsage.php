@@ -14,8 +14,8 @@ final class IijmioUsage
 
     public function getStats(): array
     {
-        [$remainingDataVolume, $monthlyUsage] = $this->__crawl();
-        return $this->__judgeResult($remainingDataVolume, $monthlyUsage);
+        [$remainingDataVolume, $monthlyUsages, $dailyUsages] = $this->__crawl();
+        return $this->__judgeResult($remainingDataVolume, $monthlyUsages, $dailyUsages);
     }
 
     private function __crawl(): array
@@ -208,7 +208,7 @@ final class IijmioUsage
         foreach ($monthlyUsages as $user => $monthlyUsage) {
             $monthlyUsage = sprintf("%.1f", $monthlyUsage);
             $dailyUsage = sprintf("%.1f", $dailyUsages[$user]);
-            $thisMonthUsageList[] = "  {$this->iijmioConfig->users->$user}: {$monthlyUsage}GB  (+{$dailyUsage}GB)";
+            $thisMonthUsageList[] = "  {$this->iijmioConfig->users->$user}: {$monthlyUsage}GB  (+{$dailyUsage})";
         }
         $thisMonthUsageList = implode("\n", $thisMonthUsageList);
         $thisMonthTotalUsage = sprintf("%.1f", array_sum($monthlyUsages));
@@ -223,7 +223,7 @@ final class IijmioUsage
 
 Usage:
 {$thisMonthUsageList}
-  TOTAL: {$thisMonthTotalUsage}GB  (+{$dailyTotalUsage}GB, {$thisMonthTotalUsageRate}%)
+  TOTAL: {$thisMonthTotalUsage}GB  (+{$dailyTotalUsage}, {$thisMonthTotalUsageRate}%)
 
 EoM: {$estimateUsage}GB  ({$estimateUsageRate}%)
 Plan: {$planDataVolume}GB

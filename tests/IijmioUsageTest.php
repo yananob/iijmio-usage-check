@@ -70,9 +70,9 @@ final class IijmioUsageTest extends TestCase
 [INFO] Mobile usage report
 
 Usage:
-  user1: 0.9GB  (+0.1GB)
-  user2: 1.0GB  (+0.2GB)
-  TOTAL: 1.9GB  (+0.3GB, 32%)
+  user1: 0.9GB  (+0.1)
+  user2: 1.0GB  (+0.2)
+  TOTAL: 1.9GB  (+0.3, 32%)
 
 EoM: 5.2GB  (87%)
 Plan: 6.0GB
@@ -106,9 +106,9 @@ EOT;
 [WARN] Mobile usage is not good
 
 Usage:
-  user1: 0.9GB  (+0.1GB)
-  user2: 1.0GB  (+0.2GB)
-  TOTAL: 1.9GB  (+0.3GB, 32%)
+  user1: 0.9GB  (+0.1)
+  user2: 1.0GB  (+0.2)
+  TOTAL: 1.9GB  (+0.3, 32%)
 
 EoM: 6.3GB  (105%)
 Plan: 6.0GB
