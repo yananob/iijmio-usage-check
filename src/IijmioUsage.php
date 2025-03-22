@@ -14,8 +14,8 @@ final class IijmioUsage
 
     public function getStats(): array
     {
-        [$remainingDataVolume, $monthlyUsage] = $this->__crawl();
-        return $this->__judgeResult($remainingDataVolume, $monthlyUsage);
+        [$remainingDataVolume, $monthlyUsages, $dailyUsages] = $this->__crawl();
+        return $this->__judgeResult($remainingDataVolume, $monthlyUsages, $dailyUsages);
     }
 
     private function __crawl(): array
@@ -82,7 +82,18 @@ final class IijmioUsage
         // var_dump((string)$response->getBody());
         $monthlyUsage = $this->__parseMonthlyUsagePage((string)$response->getBody());
 
-        return [$remainingDataVolume, $monthlyUsage];
+        $response = $client->get(
+            "/service/setup/hdc/viewdailydata/",
+            [
+                "headers" => $this->__getHttpHeaders(null),
+                "cookies" => $cookieJar,
+            ]
+        );
+        $this->__checkResponse($response);
+        // var_dump((string)$response->getBody());
+        $dailyUsage = $this->__parseDailyUsagePage((string)$response->getBody());
+
+        return [$remainingDataVolume, $monthlyUsage, $dailyUsage];
     }
 
     private function __getHttpHeaders(?string $contentType): array
@@ -133,7 +144,7 @@ final class IijmioUsage
             if (!$matches || count($matches) < 2) {
                 throw new \Exception("Could not get monthly usage: " . $contentUser);
             }
-            $usage = $matches[1];
+            $usage = (float)$matches[1];
 
             $result[$hdoCode] = $usage;
         }
@@ -141,7 +152,42 @@ final class IijmioUsage
         return $result;
     }
 
-    private function __judgeResult(array $remainingDataVolume, array $monthlyUsages): array
+    private function __parseDailyUsagePage(string $content): array
+    {
+        // 不要部分カット
+        $content = preg_replace('/<h1>データ利用量照会<\/h1>/m', "", $content);
+        // var_dump($content);
+
+        $result = [];
+        // ユーザーごとに分割
+        $contentUsers = explode('<div class="viewdata">', $content);
+        foreach ($contentUsers as $idx => $contentUser) {
+            if ($idx === 0) {
+                continue;
+            }
+
+            // <input id="hdoCode" name="hdoCode" value="hdo12345678" type="hidden" value=""/>
+            preg_match('/<input id="hdoCode" name="hdoCode" value="(hdo[0-9]+?)" type="hidden" value=""\/>/', $contentUser, $matches);
+            if (!$matches || count($matches) < 2) {
+                throw new \Exception("Could not get hdoCode usage: " . $contentUser);
+            }
+            $hdoCode = $matches[1];
+
+            // <td class="viewdata-detail-cell2">
+            // 5.3GB </td>
+            preg_match('/<td class="viewdata-detail-cell2">[\s]*?([0-9\.]+)MB[\s]*<\/td>/m', $contentUser, $matches);
+            if (!$matches || count($matches) < 2) {
+                throw new \Exception("Could not get daily usage: " . $contentUser);
+            }
+            $usage = ((float)$matches[1] / 1000);  // MB -> GB
+
+            $result[$hdoCode] = $usage;
+        }
+
+        return $result;
+    }
+
+    private function __judgeResult(array $remainingDataVolume, array $monthlyUsages, array $dailyUsages): array
     {
         $totalRemainingDataVolume = array_sum($remainingDataVolume);
         $estimateUsage = $this->__estimateThisMonthUsage($monthlyUsages);
@@ -161,10 +207,12 @@ final class IijmioUsage
         $thisMonthUsageList = [];
         foreach ($monthlyUsages as $user => $monthlyUsage) {
             $monthlyUsage = sprintf("%.1f", $monthlyUsage);
-            $thisMonthUsageList[] = "  {$this->iijmioConfig->users->$user}: {$monthlyUsage}GB";
+            $dailyUsage = sprintf("%.1f", $dailyUsages[$user]);
+            $thisMonthUsageList[] = "  {$this->iijmioConfig->users->$user}: {$monthlyUsage}GB  (+{$dailyUsage})";
         }
         $thisMonthUsageList = implode("\n", $thisMonthUsageList);
         $thisMonthTotalUsage = sprintf("%.1f", array_sum($monthlyUsages));
+        $dailyTotalUsage = sprintf("%.1f", array_sum($dailyUsages));
         $thisMonthTotalUsageRate = round($thisMonthTotalUsage / $this->iijmioConfig->plan_data_volume * 100, 0);
         $estimateUsageRate = round($estimateUsage / $this->iijmioConfig->plan_data_volume * 100, 0);
         $planDataVolume = sprintf("%.1f", $this->iijmioConfig->plan_data_volume);
@@ -175,7 +223,7 @@ final class IijmioUsage
 
 Usage:
 {$thisMonthUsageList}
-  TOTAL: {$thisMonthTotalUsage}GB  ({$thisMonthTotalUsageRate}%)
+  TOTAL: {$thisMonthTotalUsage}GB  (+{$dailyTotalUsage}, {$thisMonthTotalUsageRate}%)
 
 EoM: {$estimateUsage}GB  ({$estimateUsageRate}%)
 Plan: {$planDataVolume}GB
