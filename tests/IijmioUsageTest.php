@@ -34,8 +34,8 @@ final class IijmioUsageTest extends TestCase
 
         $this->assertNotEmpty($result);
         $this->assertArrayHasKey("hdo12345678", $result);
-        $this->assertSame("5.3", $result["hdo12345678"]);
-        $this->assertSame("1.64", $result["hdo22345678"]);
+        $this->assertSame(5.3, $result["hdo12345678"]);
+        $this->assertSame(1.64, $result["hdo22345678"]);
     }
 
     public function testParseDailyUsagePage(): void
@@ -47,8 +47,8 @@ final class IijmioUsageTest extends TestCase
 
         $this->assertNotEmpty($result);
         $this->assertArrayHasKey("hdo12345678", $result);
-        $this->assertSame("0.189", $result["hdo12345678"]);
-        $this->assertSame("0.008", $result["hdo22345678"]);
+        $this->assertSame(0.189, $result["hdo12345678"]);
+        $this->assertSame(0.008, $result["hdo22345678"]);
     }
 
     public function testJudgeResult(): void
