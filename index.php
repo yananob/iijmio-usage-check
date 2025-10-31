@@ -10,10 +10,10 @@ use yananob\MyTools\Line;
 use yananob\MyGcpTools\CFUtils;
 use MyApp\IijmioUsage;
 
-FunctionsFramework::cloudEvent('main', 'main');
-function main(CloudEventInterface $event): void
+FunctionsFramework::cloudEvent('main_event', 'main_event');
+function main_event(CloudEventInterface $event): void
 {
-    $logger = new Logger("main");
+    $logger = new Logger("main_event");
 
     $isLocal = CFUtils::isLocalEvent($event);
     $logger->log("Running as " . ($isLocal ? "local" : "cloud") . " mode");
