@@ -20,80 +20,89 @@ final class IijmioUsage
 
     private function __crawl(): array
     {
-        $client = new Client([
-            'base_uri' => 'https://www.iijmio.jp/',
-            'timeout'  => 30.0,
-        ]);
-        $cookieJar = new CookieJar();
+        for ($i = 0; $i < 5; $i++) {
+            try {
+                $client = new Client([
+                    'base_uri' => 'https://www.iijmio.jp/',
+                    'timeout'  => 30.0,
+                ]);
+                $cookieJar = new CookieJar();
 
-        $response = $client->get(
-            "/member/",
-            [
-                "headers" => $this->__getHttpHeaders(null),
-                "cookies" => $cookieJar,
-            ]
-        );
-        $this->__checkResponse($response);
-        // var_dump($response);
+                $response = $client->get(
+                    "/member/",
+                    [
+                        "headers" => $this->__getHttpHeaders(null),
+                        "cookies" => $cookieJar,
+                    ]
+                );
+                $this->__checkResponse($response);
+                // var_dump($response);
 
-        $response = $client->post(
-            "/api/member/login",
-            [
-                "headers" => $this->__getHttpHeaders("application/json"),
-                "cookies" => $cookieJar,
-                "json" => [
-                    "mioId" => $this->iijmioConfig->mio_id,
-                    "password"  => $this->iijmioConfig->password,
-                ],
-            ]
-        );
-        $this->__checkResponse($response);
+                $response = $client->post(
+                    "/api/member/login",
+                    [
+                        "headers" => $this->__getHttpHeaders("application/json"),
+                        "cookies" => $cookieJar,
+                        "json" => [
+                            "mioId" => $this->iijmioConfig->mio_id,
+                            "password"  => $this->iijmioConfig->password,
+                        ],
+                    ]
+                );
+                $this->__checkResponse($response);
 
-        $response = $client->post(
-            "/api/member/top",
-            [
-                "headers" => $this->__getHttpHeaders("application/json"),
-                "cookies" => $cookieJar,
-                "json" => [
-                    "billingFlag" => true,
-                    "serviceCode"  => "",
-                ],
-            ]
-        );
-        $this->__checkResponse($response);
-        // var_dump($response);
-        $body = json_decode((string)$response->getBody(), true);
-        if (empty($body["serviceInfoList"][0]["couponData"])) {
-            throw new \Exception("Could not get couponData: " . var_export($body, true));
+                $response = $client->post(
+                    "/api/member/top",
+                    [
+                        "headers" => $this->__getHttpHeaders("application/json"),
+                        "cookies" => $cookieJar,
+                        "json" => [
+                            "billingFlag" => true,
+                            "serviceCode"  => "",
+                        ],
+                    ]
+                );
+                $this->__checkResponse($response);
+                // var_dump($response);
+                $body = json_decode((string)$response->getBody(), true);
+                if (empty($body["serviceInfoList"][0]["couponData"])) {
+                    throw new \Exception("Could not get couponData: " . var_export($body, true));
+                }
+                $remainingDataVolume = [];
+                foreach (json_decode((string)$response->getBody(), true)["serviceInfoList"][0]["couponData"] as $couponData) {
+                    $remainingDataVolume[$couponData["month"]] = $couponData["couponValue"];
+                }
+
+                $response = $client->get(
+                    "/service/setup/hdc/viewmonthlydata/",
+                    [
+                        "headers" => $this->__getHttpHeaders(null),
+                        "cookies" => $cookieJar,
+                    ]
+                );
+                $this->__checkResponse($response);
+                // var_dump((string)$response->getBody());
+                $monthlyUsage = $this->__parseMonthlyUsagePage((string)$response->getBody());
+
+                $response = $client->get(
+                    "/service/setup/hdc/viewdailydata/",
+                    [
+                        "headers" => $this->__getHttpHeaders(null),
+                        "cookies" => $cookieJar,
+                    ]
+                );
+                $this->__checkResponse($response);
+                // var_dump((string)$response->getBody());
+                $dailyUsage = $this->__parseDailyUsagePage((string)$response->getBody());
+
+                return [$remainingDataVolume, $monthlyUsage, $dailyUsage];
+            } catch (\Exception $e) {
+                if ($i >= 4) {
+                    throw $e;
+                }
+                sleep(10);
+            }
         }
-        $remainingDataVolume = [];
-        foreach (json_decode((string)$response->getBody(), true)["serviceInfoList"][0]["couponData"] as $couponData) {
-            $remainingDataVolume[$couponData["month"]] = $couponData["couponValue"];
-        }
-
-        $response = $client->get(
-            "/service/setup/hdc/viewmonthlydata/",
-            [
-                "headers" => $this->__getHttpHeaders(null),
-                "cookies" => $cookieJar,
-            ]
-        );
-        $this->__checkResponse($response);
-        // var_dump((string)$response->getBody());
-        $monthlyUsage = $this->__parseMonthlyUsagePage((string)$response->getBody());
-
-        $response = $client->get(
-            "/service/setup/hdc/viewdailydata/",
-            [
-                "headers" => $this->__getHttpHeaders(null),
-                "cookies" => $cookieJar,
-            ]
-        );
-        $this->__checkResponse($response);
-        // var_dump((string)$response->getBody());
-        $dailyUsage = $this->__parseDailyUsagePage((string)$response->getBody());
-
-        return [$remainingDataVolume, $monthlyUsage, $dailyUsage];
     }
 
     private function __getHttpHeaders(?string $contentType): array
