@@ -9,6 +9,7 @@ use yananob\MyTools\Utils;
 use yananob\MyTools\Line;
 use yananob\MyGcpTools\CFUtils;
 use MyApp\IijmioUsage;
+use MyApp\AppConfig;
 
 FunctionsFramework::cloudEvent('main_event', 'main_event');
 function main_event(CloudEventInterface $event): void
@@ -18,7 +19,7 @@ function main_event(CloudEventInterface $event): void
     $isLocal = CFUtils::isLocalEvent($event);
     $logger->log("Running as " . ($isLocal ? "local" : "cloud") . " mode");
 
-    $config = Utils::getConfig(path: __DIR__ . "/configs/config.json", asArray: false);
+    $config = AppConfig::get();
     $iijmio = new IijmioUsage(
         $config->iijmio,
         $config->alert->send_usage_each_n_days
