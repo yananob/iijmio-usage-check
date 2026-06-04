@@ -2,8 +2,6 @@
 
 namespace MyApp;
 
-use Google\Cloud\Firestore\FirestoreClient;
-
 final class AppConfig
 {
     private static ?object $config = null;
@@ -20,25 +18,34 @@ final class AppConfig
             return self::$config;
         }
 
-        $serviceAccountKey = getenv('FIREBASE_SERVICE_ACCOUNT');
-        $firestoreOptions = [];
-        if ($serviceAccountKey) {
-            $firestoreOptions['keyFile'] = json_decode($serviceAccountKey, true);
-        }
-
         try {
-            $firestore = new FirestoreClient($firestoreOptions);
-            $doc = $firestore->collection('iijmio-usage-check')->document('config')->snapshot();
+            $firestore = Firestore::getClient();
+            $collectionName = self::getCollectionName();
+            $doc = $firestore->collection($collectionName)->document('config')->snapshot();
 
             if (!$doc->exists()) {
-                throw new \RuntimeException("Config not found in Firestore: iijmio-usage-check/config");
+                throw new \RuntimeException("Config not found in Firestore: {$collectionName}/config");
             }
 
-            // オブジェクトとして扱うため、一度JSONにしてからデコードする
             self::$config = (object)json_decode(json_encode($doc->data()));
             return self::$config;
         } catch (\Exception $e) {
             throw new \RuntimeException("Failed to load config from Firestore: " . $e->getMessage());
         }
+    }
+
+    /**
+     * 環境に応じたコレクション名を取得する
+     *
+     * @return string
+     */
+    public static function getCollectionName(): string
+    {
+        $env = getenv('APP_ENV');
+        if ($env === 'production') {
+            return 'iijmio-usage-check';
+        }
+
+        return 'iijmio-usage-check-test';
     }
 }
