@@ -2,7 +2,6 @@
 
 use Carbon\Carbon;
 use PHPUnit\Framework\TestCase;
-use MyApp\Utils\Utils;
 use MyApp\Utils\Test;
 use MyApp\Consts;
 use MyApp\IijmioUsage;
@@ -14,7 +13,12 @@ final class IijmioUsageTest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
-        $this->config = Utils::getConfig(path: __DIR__ . "/config.json.test", asArray: false);
+        $configPath = __DIR__ . "/config.json.test";
+        $content = file_get_contents($configPath);
+        if ($content === false) {
+            throw new \RuntimeException("Test config not found: {$configPath}");
+        }
+        $this->config = (object)json_decode($content, false);
     }
 
     // public function testCrawl(): void
