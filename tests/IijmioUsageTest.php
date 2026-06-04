@@ -2,8 +2,8 @@
 
 use Carbon\Carbon;
 use PHPUnit\Framework\TestCase;
-use yananob\MyTools\Utils;
-use yananob\MyTools\Test;
+use MyApp\Utils\Utils;
+use MyApp\Utils\Test;
 use MyApp\Consts;
 use MyApp\IijmioUsage;
 

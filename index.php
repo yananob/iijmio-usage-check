@@ -4,10 +4,10 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 use Google\CloudFunctions\FunctionsFramework;
 use CloudEvents\V1\CloudEventInterface;
-use yananob\MyTools\Logger;
-use yananob\MyTools\Utils;
-use yananob\MyTools\Line;
-use yananob\MyGcpTools\CFUtils;
+use MyApp\Utils\Logger;
+use MyApp\Utils\Utils;
+use MyApp\Utils\Line;
+use MyApp\Utils\CFUtils;
 use MyApp\IijmioUsage;
 use MyApp\AppConfig;
 
