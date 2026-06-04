@@ -5,7 +5,7 @@ namespace MyApp;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
-// use yananob\MyTools\Logger;
+use MyApp\Utils\Logger;
 
 final class IijmioUsage
 {
@@ -103,6 +103,8 @@ final class IijmioUsage
                 sleep(10);
             }
         }
+
+        throw new \Exception("Retry limit exceeded.");
     }
 
     private function __getHttpHeaders(?string $contentType): array
