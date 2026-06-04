@@ -19,8 +19,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 
 try {
     $firestore = Firestore::getClient();
-    $isProduction = (getenv('APP_ENV') === AppConfig::ENV_PRODUCTION);
-    $collectionName = $isProduction ? AppConfig::COLLECTION_NAME : AppConfig::COLLECTION_NAME_TEST;
+    $collectionName = AppConfig::getCollectionName();
     $docRef = $firestore->collection($collectionName)->document('config');
     $docRef->set($configData);
     echo "Successfully migrated config to Firestore: {$collectionName}/config\n";

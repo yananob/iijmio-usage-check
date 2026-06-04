@@ -16,10 +16,9 @@ function main_event(CloudEventInterface $event): void
     $logger = new Logger("main_event");
 
     $appEnv = getenv('APP_ENV');
-    $isProduction = ($appEnv === AppConfig::ENV_PRODUCTION);
-    $logger->log("Running as " . ($isProduction ? "production" : "test") . " mode");
+    $logger->log("Running as " . ($appEnv ?: "unknown") . " mode");
 
-    $collectionName = $isProduction ? AppConfig::COLLECTION_NAME : AppConfig::COLLECTION_NAME_TEST;
+    $collectionName = AppConfig::getCollectionName();
 
     try {
         $firestore = Firestore::getClient();
