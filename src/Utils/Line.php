@@ -2,44 +2,37 @@
 
 namespace MyApp\Utils;
 
-use GuzzleHttp\Client;
+use LINE\Clients\MessagingApi\Api\MessagingApiApi;
+use LINE\Clients\MessagingApi\Configuration;
+use LINE\Clients\MessagingApi\Model\PushMessageRequest;
+use LINE\Clients\MessagingApi\Model\TextMessage;
 
 final class Line
 {
-    private array $config;
+    private MessagingApiApi $apiInstance;
 
-    public function __construct(string $configPath)
+    public function __construct(string $accessToken)
     {
-        $this->config = Utils::getConfig($configPath, true);
+        $config = new Configuration();
+        $config->setAccessToken($accessToken);
+
+        $this->apiInstance = new MessagingApiApi(
+            config: $config
+        );
     }
 
-    public function sendPush(string $bot, string $target, string $message): void
+    public function sendPush(string $target, string $message): void
     {
-        if (!isset($this->config[$bot])) {
-            throw new \RuntimeException("Bot config not found: {$bot}");
-        }
-
-        $accessToken = $this->config[$bot]['access_token'];
-
-        $client = new Client([
-            'base_uri' => 'https://api.line.me/v2/bot/message/',
-            'timeout'  => 10.0,
-        ]);
-
-        $client->post('push', [
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $accessToken,
-            ],
-            'json' => [
-                'to' => $target,
-                'messages' => [
-                    [
-                        'type' => 'text',
-                        'text' => $message,
-                    ],
-                ],
+        $request = new PushMessageRequest([
+            'to' => $target,
+            'messages' => [
+                new TextMessage([
+                    'type' => 'text',
+                    'text' => $message,
+                ]),
             ],
         ]);
+
+        $this->apiInstance->pushMessage($request);
     }
 }
