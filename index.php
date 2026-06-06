@@ -9,6 +9,64 @@ use App\Utils\Line;
 use App\IijmioUsage;
 use App\AppConfig;
 use App\Firestore;
+use Psr\Http\Message\ServerRequestInterface;
+use eftec\bladeone\BladeOne;
+
+FunctionsFramework::http('main_http', 'main_http');
+function main_http(ServerRequestInterface $request): string
+{
+    $firestore = Firestore::getClient();
+    $collectionName = AppConfig::getCollectionName();
+    $docRef = $firestore->collection($collectionName)->document('config');
+    $message = null;
+
+    if ($request->getMethod() === 'POST') {
+        $params = $request->getParsedBody();
+
+        $users = [];
+        if (isset($params['iijmio']['users']) && is_array($params['iijmio']['users'])) {
+            foreach ($params['iijmio']['users'] as $user) {
+                if (!empty($user['code']) && !empty($user['name'])) {
+                    $users[$user['code']] = $user['name'];
+                }
+            }
+        }
+
+        $configData = [
+            'iijmio' => [
+                'mio_id' => $params['iijmio']['mio_id'] ?? '',
+                'password' => $params['iijmio']['password'] ?? '',
+                'plan_data_volume' => (float)($params['iijmio']['plan_data_volume'] ?? 0),
+                'users' => $users,
+            ],
+            'alert' => [
+                'bot' => $params['alert']['bot'] ?? '',
+                'target' => $params['alert']['target'] ?? '',
+                'send_usage_each_n_days' => (int)($params['alert']['send_usage_each_n_days'] ?? 0),
+            ],
+        ];
+
+        $docRef->set($configData);
+        $message = "Config updated successfully.";
+    }
+
+    $doc = $docRef->snapshot();
+    $configData = $doc->exists() ? $doc->data() : [];
+
+    $views = __DIR__ . '/views';
+    $cache = '/tmp/cache';
+    if (!is_dir($cache)) {
+        mkdir($cache, 0777, true);
+    }
+    $blade = new BladeOne($views, $cache, BladeOne::MODE_AUTO);
+
+    return $blade->run("config", [
+        "message" => $message,
+        "collectionName" => $collectionName,
+        "config" => $configData,
+        "appEnv" => getenv('APP_ENV') ?: 'unknown',
+    ]);
+}
 
 FunctionsFramework::cloudEvent('main_event', 'main_event');
 function main_event(CloudEventInterface $event): void
