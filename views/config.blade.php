@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IIJmio Usage Checker Config</title>
     <style>
-        body { font-family: sans-serif; margin: 2em; line-height: 1.6; background-color: #f9f9f9; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 2em; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        body { font-family: sans-serif; margin: 0; padding: 1em; line-height: 1.6; background-color: #f9f9f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 1.5em; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .footer { margin-top: 2em; font-size: 0.8em; color: #666; text-align: center; }
         .message { color: #2e7d32; font-weight: bold; background: #e8f5e9; padding: 1em; border-radius: 4px; margin-bottom: 1em; }
-        section { margin-bottom: 2em; border: 1px solid #eee; padding: 1.5em; border-radius: 4px; }
-        h1 { text-align: center; color: #333; }
-        h2 { margin-top: 0; color: #555; border-bottom: 2px solid #eee; padding-bottom: 0.5em; }
-        h3 { color: #666; }
+        section { margin-bottom: 2em; border: 1px solid #eee; padding: 1em; border-radius: 4px; }
+        h1 { text-align: center; color: #333; font-size: 1.5em; }
+        h2 { margin-top: 0; color: #555; border-bottom: 2px solid #eee; padding-bottom: 0.5em; font-size: 1.2em; }
+        h3 { color: #666; font-size: 1.1em; }
         .field { margin-bottom: 15px; }
-        label { display: inline-block; width: 200px; font-weight: bold; }
-        input[type="text"], input[type="password"], input[type="number"] { width: 300px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        label { display: inline-block; width: 100%; max-width: 200px; font-weight: bold; vertical-align: top; margin-bottom: 5px; }
+        input[type="text"], input[type="password"], input[type="number"] { width: 100%; max-width: 300px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .table-container { overflow-x: auto; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f4f4f4; }
         button { padding: 10px 20px; cursor: pointer; border-radius: 4px; border: none; transition: background 0.2s; }
         .btn-add { background-color: #0288d1; color: white; margin-bottom: 1em; }
@@ -24,7 +27,14 @@
         .btn-save:hover { background-color: #388e3c; }
         .btn-remove { background-color: #e53935; color: white; padding: 6px 12px; }
         .btn-remove:hover { background-color: #d32f2f; }
-        .env-info { background: #eee; padding: 0.5em; border-radius: 4px; font-family: monospace; display: inline-block; }
+        .env-info { background: #eee; padding: 0.2em 0.5em; border-radius: 4px; font-family: monospace; display: inline-block; word-break: break-all; }
+
+        @media (max-width: 600px) {
+            body { padding: 0.5em; }
+            .container { padding: 1em; }
+            label { display: block; max-width: none; }
+            input[type="text"], input[type="password"], input[type="number"] { max-width: none; }
+        }
     </style>
 </head>
 <body>
@@ -53,15 +63,16 @@
                 </div>
 
                 <h3>Users</h3>
-                <table id="users-table">
-                    <thead>
-                        <tr>
-                            <th>HDO Code (e.g. hdo12345678)</th>
-                            <th>Name</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="users-body">
+                <div class="table-container">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>HDO Code (e.g. hdo12345678)</th>
+                                <th>Name</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-body">
                         @php $userIndex = 0; @endphp
                         @if(isset($config['iijmio']['users']) && is_array($config['iijmio']['users']))
                             @foreach($config['iijmio']['users'] as $code => $name)
@@ -73,8 +84,9 @@
                             @php $userIndex++; @endphp
                             @endforeach
                         @endif
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
                 <button type="button" class="btn-add" id="add-user">+ Add User</button>
             </section>
 
