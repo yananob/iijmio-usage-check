@@ -45,7 +45,7 @@ jobs:
       # gcs_bucket_path: test
       # disable_gcs_cache: true
       deploy_http_trigger: true
-      deploy_event_trigger: false
+      deploy_event_trigger: true
       http_max_instance_count: 1
       memory: '256M'
       http_timeout: '5m'
