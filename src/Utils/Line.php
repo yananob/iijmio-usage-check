@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace MyApp\Utils;
+namespace App\Utils;
 
 use LINE\Clients\MessagingApi\Api\MessagingApiApi;
 use LINE\Clients\MessagingApi\Configuration;

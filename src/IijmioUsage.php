@@ -1,11 +1,11 @@
 <?php declare(strict_types=1);
 
-namespace MyApp;
+namespace App;
 
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
-use MyApp\Utils\Logger;
+use App\Utils\Logger;
 
 final class IijmioUsage
 {

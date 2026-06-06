@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace MyApp\Utils;
+namespace App\Utils;
 
 final class Test
 {

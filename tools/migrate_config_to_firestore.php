@@ -1,13 +1,13 @@
 <?php declare(strict_types=1);
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
-use MyApp\Firestore;
-use MyApp\AppConfig;
+use App\Firestore;
+use App\AppConfig;
 
-$configFile = __DIR__ . '/configs/config.json';
+$configFile = __DIR__ . '/../configs/config.json';
 if (!file_exists($configFile)) {
-    $configFile = __DIR__ . '/configs/config.json.sample';
+    $configFile = __DIR__ . '/../configs/config.json.sample';
 }
 
 echo "Reading config from: $configFile\n";

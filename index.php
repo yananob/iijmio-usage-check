@@ -4,11 +4,11 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 use Google\CloudFunctions\FunctionsFramework;
 use CloudEvents\V1\CloudEventInterface;
-use MyApp\Utils\Logger;
-use MyApp\Utils\Line;
-use MyApp\IijmioUsage;
-use MyApp\AppConfig;
-use MyApp\Firestore;
+use App\Utils\Logger;
+use App\Utils\Line;
+use App\IijmioUsage;
+use App\AppConfig;
+use App\Firestore;
 
 FunctionsFramework::cloudEvent('main_event', 'main_event');
 function main_event(CloudEventInterface $event): void
@@ -20,18 +20,14 @@ function main_event(CloudEventInterface $event): void
 
     $collectionName = AppConfig::getCollectionName();
 
-    try {
-        $firestore = Firestore::getClient();
-        $doc = $firestore->collection($collectionName)->document('config')->snapshot();
+    $firestore = Firestore::getClient();
+    $doc = $firestore->collection($collectionName)->document('config')->snapshot();
 
-        if (!$doc->exists()) {
-            throw new \RuntimeException("Config not found in Firestore: {$collectionName}/config");
-        }
-
-        $config = (object)json_decode(json_encode($doc->data()));
-    } catch (\Exception $e) {
-        throw new \RuntimeException("Failed to load config from Firestore: " . $e->getMessage());
+    if (!$doc->exists()) {
+        throw new \RuntimeException("Config not found in Firestore: {$collectionName}/config");
     }
+
+    $config = (object)json_decode(json_encode($doc->data()));
 
     $iijmio = new IijmioUsage(
         $config->iijmio,

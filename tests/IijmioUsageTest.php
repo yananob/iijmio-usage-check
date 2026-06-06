@@ -2,9 +2,9 @@
 
 use Carbon\Carbon;
 use PHPUnit\Framework\TestCase;
-use MyApp\Utils\Test;
-use MyApp\Consts;
-use MyApp\IijmioUsage;
+use App\Utils\Test;
+use App\Consts;
+use App\IijmioUsage;
 
 final class IijmioUsageTest extends TestCase
 {
