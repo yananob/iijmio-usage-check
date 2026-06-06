@@ -39,7 +39,10 @@ function main_http(ServerRequestInterface $request): string
     $configJson = json_encode($configData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
     $views = __DIR__ . '/views';
-    $cache = __DIR__ . '/cache';
+    $cache = '/tmp/cache';
+    if (!is_dir($cache)) {
+        mkdir($cache, 0777, true);
+    }
     $blade = new BladeOne($views, $cache, BladeOne::MODE_AUTO);
 
     return $blade->run("config", [

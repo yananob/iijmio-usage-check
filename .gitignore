@@ -11,8 +11,7 @@ venv*/
 _backup/
 
 # for PHP
-**/cache/*
-!**/cache/.gitkeep
+**/cache/
 **/templates_c/
 **/vendor/
 
@@ -20,3 +19,5 @@ _backup/
 .gemini/
 # GitHub App credentials
 gha-creds-*.json
+
+backup/
