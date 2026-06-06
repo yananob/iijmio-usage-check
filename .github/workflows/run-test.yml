@@ -1,37 +1,40 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
 name: Run test
 
-on:
-  # pull_request:
-  #   types: [opened, reopened, edited, synchronize]
-  #   branches-ignore:
-  #     - main
-  # push:
-  #   branches:
-  #     - test
-  # schedule:
-  #   - cron:  '45 21 * * 5'
-  workflow_dispatch:
+# env:
+#   target: iijmio-usage
 
-concurrency:
-  group: XXX-run-test
-  cancel-in-progress: true
+on:
+  pull_request:
+    branches: test
+    types: [opened, reopened, synchronize]
+    # paths:
+    #   - 'iijmio-usage/**'
+    #   - '.github/workflows/test-iijmio-usage.yml'
+  push:
+    # branches: main
+    # paths:
+    #   - 'iijmio-usage/**'
+    #   - '.github/workflows/test-iijmio-usage.yml'
+  schedule:
+    - cron:  '20 21 * * 5'
+  workflow_dispatch:
 
 defaults:
   run:
     working-directory: .
 
 permissions:
-  contents: 'read'
-  id-token: 'write'
+  contents: read
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
-    env:
-      GRPC_VERBOSITY: ERROR  # GRPCのログ出力を抑止
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v4
       with:
         submodules: 'true'
 
@@ -57,27 +60,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-php-
 
-    # - name: Cache NPM packages
-    #   id: npm-cache
-    #   uses: actions/cache@v4
-    #   with:
-    #     path: ${{ steps.current_dir.outputs.CURRENT_DIR }}/node_modules
-    #     key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-    #     restore-keys: |
-    #       ${{ runner.os }}-npm-
-
-    - name: Install dependencies (Composer)
+    - name: Install dependencies
       run: composer install --prefer-dist --no-progress
 
-    # - name: Install dependencies (NPM)
-    #   run: npm install --prefer-offline --no-audit --progress=false
-
-    - name: Google Cloud認証
-      id: 'auth'
-      uses: 'google-github-actions/auth@v3'
-      with:
-        workload_identity_provider: 'projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider'
-        service_account: 'cloud-run-functions-deployer@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
+    # - name: Create config.json
+    #   run: |
+    #     pwd
+    #     cp -v configs/config.json.sample configs/config.json
 
     - name: Test with phpunit
-      run: bash tests/run_tests.sh
+      run: |
+        bash tests/run_tests.sh
