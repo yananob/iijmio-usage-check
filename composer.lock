@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6bfc53cb14f7ea8abc1fca2bf3d43550",
+    "content-hash": "14977a34e6273672bf5bffd2a3496e58",
     "packages": [
         {
             "name": "brick/math",
@@ -1116,31 +1116,29 @@
         },
         {
             "name": "linecorp/line-bot-sdk",
-            "version": "9.12.0",
+            "version": "v12.5.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/line/line-bot-sdk-php.git",
-                "reference": "eebb640ef5eb7dab5cc8bb64f9c844f0ab1621e9"
+                "reference": "a76fb8c56fbdaefa4d1a5097724f67654ce3f738"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/line/line-bot-sdk-php/zipball/eebb640ef5eb7dab5cc8bb64f9c844f0ab1621e9",
-                "reference": "eebb640ef5eb7dab5cc8bb64f9c844f0ab1621e9",
+                "url": "https://api.github.com/repos/line/line-bot-sdk-php/zipball/a76fb8c56fbdaefa4d1a5097724f67654ce3f738",
+                "reference": "a76fb8c56fbdaefa4d1a5097724f67654ce3f738",
                 "shasum": ""
             },
             "require": {
                 "guzzlehttp/guzzle": "^7.3",
                 "guzzlehttp/psr7": "^1.7 || ^2.0",
-                "php": ">=8.1"
+                "php": "^8.2"
             },
             "require-dev": {
-                "guzzlehttp/guzzle": "^7.3",
-                "guzzlehttp/psr7": "^1.7 || ^2.0",
                 "orchestra/testbench": "*",
                 "phpmd/phpmd": "2.15.0",
-                "phpstan/phpstan": "^1.10",
-                "phpunit/phpunit": "^10.2",
-                "squizlabs/php_codesniffer": "3.10.3"
+                "phpstan/phpstan": "^2.0",
+                "phpunit/phpunit": "^11.0",
+                "squizlabs/php_codesniffer": "4.0.1"
             },
             "type": "library",
             "extra": {
@@ -1176,28 +1174,6 @@
             "license": [
                 "Apache-2.0"
             ],
-            "authors": [
-                {
-                    "name": "moznion",
-                    "email": "moznion@gmail.com",
-                    "role": "Retired"
-                },
-                {
-                    "name": "Satoru Yoshihara",
-                    "email": "vaduz0@gmail.com",
-                    "role": "Retired"
-                },
-                {
-                    "name": "Satoshi Shibuya",
-                    "email": "satosby@gmail.com",
-                    "role": "Maintainer"
-                },
-                {
-                    "name": "Shunsuke Mori",
-                    "email": "morimorim7180@gmail.com",
-                    "role": "Maintainer"
-                }
-            ],
             "description": "SDK of the LINE BOT API for PHP",
             "homepage": "https://github.com/line/line-bot-sdk-php",
             "keywords": [
@@ -1206,10 +1182,11 @@
                 "sdk"
             ],
             "support": {
+                "docs": "https://line.github.io/line-bot-sdk-php/",
                 "issues": "https://github.com/line/line-bot-sdk-php/issues",
-                "source": "https://github.com/line/line-bot-sdk-php/tree/9.12.0"
+                "source": "https://github.com/line/line-bot-sdk-php"
             },
-            "time": "2024-11-07T08:44:14+00:00"
+            "time": "2026-04-07T05:04:24+00:00"
         },
         {
             "name": "monolog/monolog",
