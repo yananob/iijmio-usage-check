@@ -22,12 +22,29 @@ function main_http(ServerRequestInterface $request): string
 
     if ($request->getMethod() === 'POST') {
         $params = $request->getParsedBody();
-        $configJson = $params['config'] ?? '';
-        $configData = json_decode($configJson, true);
 
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            return "Invalid JSON: " . json_last_error_msg();
+        $users = [];
+        if (isset($params['iijmio']['users']) && is_array($params['iijmio']['users'])) {
+            foreach ($params['iijmio']['users'] as $user) {
+                if (!empty($user['code']) && !empty($user['name'])) {
+                    $users[$user['code']] = $user['name'];
+                }
+            }
         }
+
+        $configData = [
+            'iijmio' => [
+                'mio_id' => $params['iijmio']['mio_id'] ?? '',
+                'password' => $params['iijmio']['password'] ?? '',
+                'plan_data_volume' => (float)($params['iijmio']['plan_data_volume'] ?? 0),
+                'users' => $users,
+            ],
+            'alert' => [
+                'bot' => $params['alert']['bot'] ?? '',
+                'target' => $params['alert']['target'] ?? '',
+                'send_usage_each_n_days' => (int)($params['alert']['send_usage_each_n_days'] ?? 0),
+            ],
+        ];
 
         $docRef->set($configData);
         $message = "Config updated successfully.";
@@ -35,8 +52,6 @@ function main_http(ServerRequestInterface $request): string
 
     $doc = $docRef->snapshot();
     $configData = $doc->exists() ? $doc->data() : [];
-
-    $configJson = json_encode($configData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
     $views = __DIR__ . '/views';
     $cache = '/tmp/cache';
@@ -48,7 +63,7 @@ function main_http(ServerRequestInterface $request): string
     return $blade->run("config", [
         "message" => $message,
         "collectionName" => $collectionName,
-        "configJson" => $configJson,
+        "config" => $configData,
         "appEnv" => getenv('APP_ENV') ?: 'unknown',
     ]);
 }
