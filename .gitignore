@@ -19,3 +19,5 @@ _backup/
 .gemini/
 # GitHub App credentials
 gha-creds-*.json
+
+backup/
