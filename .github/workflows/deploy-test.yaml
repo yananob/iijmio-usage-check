@@ -1,14 +1,14 @@
 name: Deploy Cloud Functions (test)
 
 on:
-  # pull_request:
-  #   branches:
-  #     - test
-  #   types:
-  #     - 'opened'
-  #     - 'synchronize'
-  #     - 'edited'
-  #     - 'reopened'
+  pull_request:
+    branches:
+      - test
+    types:
+      - 'opened'
+      - 'synchronize'
+      - 'edited'
+      - 'reopened'
   workflow_dispatch:
 
 concurrency:
