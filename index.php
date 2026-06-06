@@ -45,7 +45,6 @@ function main_event(CloudEventInterface $event): void
             throw new \RuntimeException("Access token not found for bot key: {$botName}");
         }
         $accessToken = $lineTokensAndTargets->tokens->{$botName};
-        $logger->log("access Token: " . $accessToken);
         $line = new Line($accessToken);
 
         $targetName = $config->alert->target ?? null;
@@ -56,7 +55,6 @@ function main_event(CloudEventInterface $event): void
             throw new \RuntimeException("Target ID not found for target key: {$targetName}");
         }
         $target = $lineTokensAndTargets->target_ids->{$targetName} ?? null;
-        $logger->log("Target: " . $target);
 
         $line->sendPush(target: $target, message: $message);
     }
