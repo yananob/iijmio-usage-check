@@ -6,9 +6,10 @@
     "require": {
         "php": ">= 8.2",
         "google/cloud-functions-framework": "^1.3",
+        "google/cloud-firestore": "^1.37",
         "nesbot/carbon": "^3.8",
-        "yananob/my-tools": "dev-main",
-        "yananob/my-gcp-tools": "dev-main"
+        "linecorp/line-bot-sdk": "^12.4",
+        "monolog/monolog": "^3.10"
     },
     "scripts": {
         "start": [
@@ -20,19 +21,9 @@
         "phpunit/phpunit": "^11.2",
         "phpstan/phpstan": "^1.11"
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "git@github.com:yananob/mytools.git"
-        },
-        {
-            "type": "vcs",
-            "url": "git@github.com:yananob/my-gcp-tools.git"
-        }
-    ],
     "autoload": {
         "psr-4": {
-            "MyApp\\": "./src/"
+            "App\\": "./src/"
         }
     }
 }

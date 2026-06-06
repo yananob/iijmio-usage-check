@@ -1,20 +1,26 @@
 <?php declare(strict_types=1);
 
-namespace MyApp;
+namespace App;
 
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
-// use yananob\MyTools\Logger;
+use App\Utils\Logger;
 
 final class IijmioUsage
 {
-    public function __construct(private object $iijmioConfig, private int $sendEachNDays = 10) {
+    public function __construct(
+        private object $iijmioConfig,
+        private int $sendEachNDays = 10,
+        private ?Logger $logger = null
+    ) {
     }
 
     public function getStats(): array
     {
+        $this->logger?->info("Starting to crawl IIJmio usage data...");
         [$remainingDataVolume, $monthlyUsages, $dailyUsages] = $this->__crawl();
+        $this->logger?->info("Successfully crawled data.");
         return $this->__judgeResult($remainingDataVolume, $monthlyUsages, $dailyUsages);
     }
 
@@ -22,12 +28,14 @@ final class IijmioUsage
     {
         for ($i = 0; $i < 5; $i++) {
             try {
+                $this->logger?->info("Attempting crawl (Attempt " . ($i + 1) . "/5)...");
                 $client = new Client([
                     'base_uri' => 'https://www.iijmio.jp/',
                     'timeout'  => 30.0,
                 ]);
                 $cookieJar = new CookieJar();
 
+                $this->logger?->info("Fetching member page...");
                 $response = $client->get(
                     "/member/",
                     [
@@ -36,8 +44,8 @@ final class IijmioUsage
                     ]
                 );
                 $this->__checkResponse($response);
-                // var_dump($response);
 
+                $this->logger?->info("Logging in...");
                 $response = $client->post(
                     "/api/member/login",
                     [
@@ -51,6 +59,7 @@ final class IijmioUsage
                 );
                 $this->__checkResponse($response);
 
+                $this->logger?->info("Fetching top page data (coupon data)...");
                 $response = $client->post(
                     "/api/member/top",
                     [
@@ -63,7 +72,6 @@ final class IijmioUsage
                     ]
                 );
                 $this->__checkResponse($response);
-                // var_dump($response);
                 $body = json_decode((string)$response->getBody(), true);
                 if (empty($body["serviceInfoList"][0]["couponData"])) {
                     throw new \Exception("Could not get couponData: " . var_export($body, true));
@@ -73,6 +81,7 @@ final class IijmioUsage
                     $remainingDataVolume[$couponData["month"]] = $couponData["couponValue"];
                 }
 
+                $this->logger?->info("Fetching monthly usage page...");
                 $response = $client->get(
                     "/service/setup/hdc/viewmonthlydata/",
                     [
@@ -81,9 +90,9 @@ final class IijmioUsage
                     ]
                 );
                 $this->__checkResponse($response);
-                // var_dump((string)$response->getBody());
                 $monthlyUsage = $this->__parseMonthlyUsagePage((string)$response->getBody());
 
+                $this->logger?->info("Fetching daily usage page...");
                 $response = $client->get(
                     "/service/setup/hdc/viewdailydata/",
                     [
@@ -92,17 +101,19 @@ final class IijmioUsage
                     ]
                 );
                 $this->__checkResponse($response);
-                // var_dump((string)$response->getBody());
                 $dailyUsage = $this->__parseDailyUsagePage((string)$response->getBody());
 
                 return [$remainingDataVolume, $monthlyUsage, $dailyUsage];
             } catch (\Exception $e) {
+                $this->logger?->warning("Crawl attempt " . ($i + 1) . " failed: " . $e->getMessage());
                 if ($i >= 4) {
                     throw $e;
                 }
                 sleep(10);
             }
         }
+
+        throw new \Exception("Retry limit exceeded.");
     }
 
     private function __getHttpHeaders(?string $contentType): array
