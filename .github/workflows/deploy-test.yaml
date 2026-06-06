@@ -1,0 +1,81 @@
+name: Deploy Cloud Functions (test)
+
+on:
+  # pull_request:
+  #   branches:
+  #     - test
+  #   types:
+  #     - 'opened'
+  #     - 'synchronize'
+  #     - 'edited'
+  #     - 'reopened'
+  workflow_dispatch:
+
+concurrency:
+  group: iijmio-usage-check-deploy-test
+  cancel-in-progress: true
+
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      function_name: ${{ steps.set_name.outputs.function_name }}
+    steps:
+      - name: Set function name
+        id: set_name
+        run: |
+          # if [ -n "${{ github.event.pull_request.number }}" ]; then
+          #   echo "function_name=iijmio-usage-check-test${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          # else
+            echo "function_name=iijmio-usage-check-test" >> $GITHUB_OUTPUT
+          # fi
+
+  deploy:
+    needs: prepare
+    uses: yananob/cloud-functions-common/.github/workflows/deploy-cloud-functions.yaml@main
+    with:
+      function_name: ${{ needs.prepare.outputs.function_name }}
+      service_account_name: 'cloud-run-functions-deployer'
+      wip_pool_name: 'github-actions-pool'
+      wip_provider_name: 'github-provider'
+      runtime: php82
+      secrets_config: |-
+        SECRET_KEYS
+      # gcs_source_dir: ./public/
+      # gcs_bucket_name: iijmio-usage-check-static
+      # gcs_bucket_path: test
+      # disable_gcs_cache: true
+      deploy_http_trigger: true
+      deploy_event_trigger: false
+      http_max_instance_count: 1
+      memory: '256M'
+      http_timeout: '5m'
+      event_timeout: '540s'
+      environment_variables: |-
+        APP_ENV=test
+    secrets:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ secrets.GCP_REGION }}
+      GCP_PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
+
+  comment:
+    needs: [prepare, deploy]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    permissions:
+      pull-requests: write
+      contents: read  # チェックアウトなど、他の操作に必要
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: 'true'
+      - name: Add comment to PR
+        run: |
+          gh pr comment $PR_NUMBER --body "Deployment succeeded to https://${{ needs.prepare.outputs.function_name }}-${{ secrets.GCP_PROJECT_NUMBER }}.${{ secrets.GCP_REGION }}.run.app [skip ci]"
