@@ -11,7 +11,8 @@ venv*/
 _backup/
 
 # for PHP
-**/cache/
+**/cache/*
+!**/cache/.gitkeep
 **/templates_c/
 **/vendor/
 
