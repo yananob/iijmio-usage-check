@@ -8,12 +8,13 @@ name: Run test
 
 on:
   pull_request:
+    branches: test
     types: [opened, reopened, synchronize]
     # paths:
     #   - 'iijmio-usage/**'
     #   - '.github/workflows/test-iijmio-usage.yml'
   push:
-    branches: main
+    # branches: main
     # paths:
     #   - 'iijmio-usage/**'
     #   - '.github/workflows/test-iijmio-usage.yml'
