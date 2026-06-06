@@ -9,6 +9,49 @@ use App\Utils\Line;
 use App\IijmioUsage;
 use App\AppConfig;
 use App\Firestore;
+use Psr\Http\Message\ServerRequestInterface;
+use eftec\bladeone\BladeOne;
+
+FunctionsFramework::http('main_http', 'main_http');
+function main_http(ServerRequestInterface $request): string
+{
+    $firestore = Firestore::getClient();
+    $collectionName = AppConfig::getCollectionName();
+    $docRef = $firestore->collection($collectionName)->document('config');
+    $message = null;
+
+    if ($request->getMethod() === 'POST') {
+        $params = $request->getParsedBody();
+        $configJson = $params['config'] ?? '';
+        $configData = json_decode($configJson, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return "Invalid JSON: " . json_last_error_msg();
+        }
+
+        $docRef->set($configData);
+        $message = "Config updated successfully.";
+    }
+
+    $doc = $docRef->snapshot();
+    $configData = $doc->exists() ? $doc->data() : [];
+
+    $configJson = json_encode($configData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+    $views = __DIR__ . '/views';
+    $cache = '/tmp/cache';
+    if (!is_dir($cache)) {
+        mkdir($cache, 0777, true);
+    }
+    $blade = new BladeOne($views, $cache, BladeOne::MODE_AUTO);
+
+    return $blade->run("config", [
+        "message" => $message,
+        "collectionName" => $collectionName,
+        "configJson" => $configJson,
+        "appEnv" => getenv('APP_ENV') ?: 'unknown',
+    ]);
+}
 
 FunctionsFramework::cloudEvent('main_event', 'main_event');
 function main_event(CloudEventInterface $event): void
