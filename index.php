@@ -31,16 +31,34 @@ function main_event(CloudEventInterface $event): void
 
     $iijmio = new IijmioUsage(
         $config->iijmio,
-        $config->alert->send_usage_each_n_days
+        $config->alert->send_usage_each_n_days,
+        $logger
     );
     [$isSendAlert, $message] = $iijmio->getStats();
     if ($isSendAlert) {
-        $accessToken = (string)getenv('LINE_CHANNEL_ACCESS_TOKEN');
-        if (empty($accessToken)) {
-            throw new \RuntimeException("LINE_CHANNEL_ACCESS_TOKEN is not set.");
+        $lineTokensAndTargets = json_decode(getenv('LINE_TOKENS_N_TARGETS'), false);
+        $botName = $config->alert->bot ?? null;
+        if (!is_string($botName) || $botName === '') {
+            throw new \RuntimeException('Unable to get config->alert->bot value.');
         }
+        if (!isset($lineTokensAndTargets->tokens->{$botName})) {
+            throw new \RuntimeException("Access token not found for bot key: {$botName}");
+        }
+        $accessToken = $lineTokensAndTargets->tokens->{$botName};
+        $logger->log("access Token: " . $accessToken);
         $line = new Line($accessToken);
-        $line->sendPush(target: $config->alert->target, message: $message);
+
+        $targetName = $config->alert->target ?? null;
+        if (!is_string($targetName) || $targetName === '') {
+            throw new \RuntimeException('Unable to get config->alert->target value.');
+        }
+        if (!isset($lineTokensAndTargets->target_ids->{$targetName})) {
+            throw new \RuntimeException("Target ID not found for target key: {$targetName}");
+        }
+        $target = $lineTokensAndTargets->target_ids->{$targetName} ?? null;
+        $logger->log("Target: " . $target);
+
+        $line->sendPush(target: $target, message: $message);
     }
 
     $logger->log($message);
