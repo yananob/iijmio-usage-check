@@ -1,1 +1,13 @@
-./_cf-common/test/phpstan.neon
+parameters:
+    level: 5
+    paths:
+        - .
+    excludePaths:
+        - vendor
+        - node_modules (?)
+        - templates_c (?)
+        - _deploy (?)
+        - _template (?)
+        - _cf-common (?)
+
+    treatPhpDocTypesAsCertain: false

@@ -14,3 +14,8 @@ _backup/
 **/cache/
 **/templates_c/
 **/vendor/
+
+# gemini-cli settings
+.gemini/
+# GitHub App credentials
+gha-creds-*.json
