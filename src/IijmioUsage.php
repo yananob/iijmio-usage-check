@@ -212,8 +212,31 @@ final class IijmioUsage
         $totalRemainingDataVolume = array_sum($remainingDataVolume);
         $estimateUsage = $this->__estimateThisMonthUsage($monthlyUsages);
 
+        $planDataVolume = 0.0;
+        if (isset($this->iijmioConfig->plan_data_volume)) {
+            $planDataVolume = (float)$this->iijmioConfig->plan_data_volume;
+        }
+
+        // Sum individual user plan data volumes if configured
+        $hasIndividualVolume = false;
+        $sumIndividualVolume = 0.0;
+        if (isset($this->iijmioConfig->users)) {
+            foreach ($this->iijmioConfig->users as $user => $userInfo) {
+                if (is_object($userInfo) && isset($userInfo->plan_data_volume)) {
+                    $hasIndividualVolume = true;
+                    $sumIndividualVolume += (float)$userInfo->plan_data_volume;
+                } elseif (is_array($userInfo) && isset($userInfo['plan_data_volume'])) {
+                    $hasIndividualVolume = true;
+                    $sumIndividualVolume += (float)$userInfo['plan_data_volume'];
+                }
+            }
+        }
+        if ($hasIndividualVolume) {
+            $planDataVolume = $sumIndividualVolume;
+        }
+
         $isSend = false;
-        if ($estimateUsage > $this->iijmioConfig->plan_data_volume * 0.9) {
+        if ($planDataVolume > 0 && $estimateUsage > $planDataVolume * 0.9) {
             $isSend = true;
             $subject = "[WARN] Mobile usage is not good";
         } else {
@@ -228,14 +251,25 @@ final class IijmioUsage
         foreach ($monthlyUsages as $user => $monthlyUsage) {
             $monthlyUsage = sprintf("%.1f", $monthlyUsage);
             $dailyUsage = sprintf("%.1f", $dailyUsages[$user]);
-            $thisMonthUsageList[] = "  {$this->iijmioConfig->users->$user}: {$monthlyUsage}GB  (+{$dailyUsage})";
+            $userName = $user;
+            if (isset($this->iijmioConfig->users->$user)) {
+                $userInfo = $this->iijmioConfig->users->$user;
+                if (is_object($userInfo) && isset($userInfo->name)) {
+                    $userName = $userInfo->name;
+                } elseif (is_array($userInfo) && isset($userInfo['name'])) {
+                    $userName = $userInfo['name'];
+                } elseif (is_string($userInfo)) {
+                    $userName = $userInfo;
+                }
+            }
+            $thisMonthUsageList[] = "  {$userName}: {$monthlyUsage}GB  (+{$dailyUsage})";
         }
         $thisMonthUsageList = implode("\n", $thisMonthUsageList);
         $thisMonthTotalUsage = sprintf("%.1f", array_sum($monthlyUsages));
         $dailyTotalUsage = sprintf("%.1f", array_sum($dailyUsages));
-        $thisMonthTotalUsageRate = round($thisMonthTotalUsage / $this->iijmioConfig->plan_data_volume * 100, 0);
-        $estimateUsageRate = round($estimateUsage / $this->iijmioConfig->plan_data_volume * 100, 0);
-        $planDataVolume = sprintf("%.1f", $this->iijmioConfig->plan_data_volume);
+        $thisMonthTotalUsageRate = $planDataVolume > 0 ? (int)round($thisMonthTotalUsage / $planDataVolume * 100, 0) : 0;
+        $estimateUsageRate = $planDataVolume > 0 ? (int)round($estimateUsage / $planDataVolume * 100, 0) : 0;
+        $planDataVolumeStr = sprintf("%.1f", $planDataVolume);
         $totalRemainingDataVolume = sprintf("%.1f", $totalRemainingDataVolume);
 
         $message = <<<EOT
@@ -246,7 +280,7 @@ Usage:
   TOTAL: {$thisMonthTotalUsage}GB  (+{$dailyTotalUsage}, {$thisMonthTotalUsageRate}%)
 
 EoM: {$estimateUsage}GB  ({$estimateUsageRate}%)
-Plan: {$planDataVolume}GB
+Plan: {$planDataVolumeStr}GB
 Left: {$totalRemainingDataVolume}GB
 EOT;
 
