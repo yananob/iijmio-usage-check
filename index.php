@@ -27,7 +27,10 @@ function main_http(ServerRequestInterface $request): string
         if (isset($params['iijmio']['users']) && is_array($params['iijmio']['users'])) {
             foreach ($params['iijmio']['users'] as $user) {
                 if (!empty($user['code']) && !empty($user['name'])) {
-                    $users[$user['code']] = $user['name'];
+                    $users[$user['code']] = [
+                        'name' => $user['name'],
+                        'plan_data_volume' => (float)($user['plan_data_volume'] ?? 0),
+                    ];
                 }
             }
         }
@@ -36,7 +39,6 @@ function main_http(ServerRequestInterface $request): string
             'iijmio' => [
                 'mio_id' => $params['iijmio']['mio_id'] ?? '',
                 'password' => $params['iijmio']['password'] ?? '',
-                'plan_data_volume' => (float)($params['iijmio']['plan_data_volume'] ?? 0),
                 'users' => $users,
             ],
             'alert' => [
