@@ -213,26 +213,14 @@ final class IijmioUsage
         $estimateUsage = $this->__estimateThisMonthUsage($monthlyUsages);
 
         $planDataVolume = 0.0;
-        if (isset($this->iijmioConfig->plan_data_volume)) {
-            $planDataVolume = (float)$this->iijmioConfig->plan_data_volume;
-        }
-
-        // Sum individual user plan data volumes if configured
-        $hasIndividualVolume = false;
-        $sumIndividualVolume = 0.0;
         if (isset($this->iijmioConfig->users)) {
             foreach ($this->iijmioConfig->users as $user => $userInfo) {
                 if (is_object($userInfo) && isset($userInfo->plan_data_volume)) {
-                    $hasIndividualVolume = true;
-                    $sumIndividualVolume += (float)$userInfo->plan_data_volume;
+                    $planDataVolume += (float)$userInfo->plan_data_volume;
                 } elseif (is_array($userInfo) && isset($userInfo['plan_data_volume'])) {
-                    $hasIndividualVolume = true;
-                    $sumIndividualVolume += (float)$userInfo['plan_data_volume'];
+                    $planDataVolume += (float)$userInfo['plan_data_volume'];
                 }
             }
-        }
-        if ($hasIndividualVolume) {
-            $planDataVolume = $sumIndividualVolume;
         }
 
         $isSend = false;
