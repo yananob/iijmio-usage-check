@@ -57,10 +57,6 @@
                     <label for="password">Password:</label>
                     <input type="password" id="password" name="iijmio[password]" value="{{ $config['iijmio']['password'] ?? '' }}" required>
                 </div>
-                <div class="field">
-                    <label for="plan_data_volume">Plan Data Volume (GB):</label>
-                    <input type="number" step="0.1" id="plan_data_volume" name="iijmio[plan_data_volume]" value="{{ $config['iijmio']['plan_data_volume'] ?? '' }}" required>
-                </div>
 
                 <h3>Users</h3>
                 <div class="table-container">
@@ -69,16 +65,22 @@
                             <tr>
                                 <th>HDO Code (e.g. hdo12345678)</th>
                                 <th>Name</th>
+                                <th>Plan Data Volume (GB)</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="users-body">
                         @php $userIndex = 0; @endphp
                         @if(isset($config['iijmio']['users']) && is_array($config['iijmio']['users']))
-                            @foreach($config['iijmio']['users'] as $code => $name)
+                            @foreach($config['iijmio']['users'] as $code => $user)
+                            @php
+                                $name = is_array($user) ? ($user['name'] ?? '') : (is_object($user) ? ($user->name ?? '') : $user);
+                                $vol = is_array($user) ? ($user['plan_data_volume'] ?? '') : (is_object($user) ? ($user->plan_data_volume ?? '') : '');
+                            @endphp
                             <tr>
                                 <td><input type="text" name="iijmio[users][{{ $userIndex }}][code]" value="{{ $code }}" required></td>
                                 <td><input type="text" name="iijmio[users][{{ $userIndex }}][name]" value="{{ $name }}" required></td>
+                                <td><input type="number" step="0.1" name="iijmio[users][{{ $userIndex }}][plan_data_volume]" value="{{ $vol }}" required></td>
                                 <td><button type="button" class="btn-remove" onclick="removeRow(this)">Remove</button></td>
                             </tr>
                             @php $userIndex++; @endphp
@@ -122,6 +124,7 @@
             tr.innerHTML = `
                 <td><input type="text" name="iijmio[users][${userIndex}][code]" value="" required placeholder="hdo12345678"></td>
                 <td><input type="text" name="iijmio[users][${userIndex}][name]" value="" required placeholder="Name"></td>
+                <td><input type="number" step="0.1" name="iijmio[users][${userIndex}][plan_data_volume]" value="" required placeholder="4.0"></td>
                 <td><button type="button" class="btn-remove" onclick="removeRow(this)">Remove</button></td>
             `;
             tbody.appendChild(tr);
