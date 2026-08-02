@@ -4,9 +4,24 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Pull all",
+            "type": "shell",
+            "command": "git pull --all --rebase"
+        },
+        {
+            "label": "run_linter",
+            "type": "shell",
+            "command": "./tests/run_linter.sh"
+        },
+        {
             "label": "run_tests",
             "type": "shell",
             "command": "./tests/run_tests.sh"
+        },
+        {
+            "label": "listen_local_http",
+            "type": "shell",
+            "command": "./tests/listen_local_http.sh"
         },
         {
             "label": "listen_local_event",
@@ -14,9 +29,9 @@
             "command": "./tests/listen_local_event.sh"
         },
         {
-            "label": "deploy",
+            "label": "merge and deploy main",
             "type": "shell",
-            "command": "./deploy.sh"
+            "command": "miscs/merge_and_deploy_main.sh"
         }
     ]
 }
