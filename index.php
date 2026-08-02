@@ -19,6 +19,7 @@ function main_http(ServerRequestInterface $request): string
     $collectionName = AppConfig::getCollectionName();
     $docRef = $firestore->collection($collectionName)->document('config');
     $message = null;
+    $previewMessage = null;
 
     if ($request->getMethod() === 'POST') {
         $params = $request->getParsedBody();
@@ -48,12 +49,28 @@ function main_http(ServerRequestInterface $request): string
             ],
         ];
 
-        $docRef->set($configData);
-        $message = "Config updated successfully.";
+        $action = $params['action'] ?? 'save';
+        if ($action === 'save') {
+            $docRef->set($configData);
+            $message = "Config updated successfully.";
+        } elseif ($action === 'preview') {
+            $configObj = (object)json_decode(json_encode($configData));
+            $logger = new Logger("preview");
+            $iijmio = new IijmioUsage(
+                $configObj->iijmio,
+                $configObj->alert->send_usage_each_n_days,
+                $logger
+            );
+            try {
+                [, $previewMessage] = $iijmio->getStats();
+            } catch (\Exception $e) {
+                $previewMessage = "Error: " . $e->getMessage();
+            }
+        }
+    } else {
+        $doc = $docRef->snapshot();
+        $configData = $doc->exists() ? $doc->data() : [];
     }
-
-    $doc = $docRef->snapshot();
-    $configData = $doc->exists() ? $doc->data() : [];
 
     $views = __DIR__ . '/views';
     $cache = '/tmp/cache';
@@ -64,6 +81,7 @@ function main_http(ServerRequestInterface $request): string
 
     return $blade->run("config", [
         "message" => $message,
+        "previewMessage" => $previewMessage ?? null,
         "collectionName" => $collectionName,
         "config" => $configData,
         "appEnv" => getenv('APP_ENV') ?: 'unknown',

@@ -25,9 +25,15 @@
         .btn-add:hover { background-color: #0277bd; }
         .btn-save { background-color: #43a047; color: white; font-size: 1.1em; display: block; width: 100%; }
         .btn-save:hover { background-color: #388e3c; }
+        .btn-preview { background-color: #0288d1; color: white; font-size: 1.1em; display: block; width: 100%; }
+        .btn-preview:hover { background-color: #0277bd; }
         .btn-remove { background-color: #e53935; color: white; padding: 6px 12px; }
         .btn-remove:hover { background-color: #d32f2f; }
         .env-info { background: #eee; padding: 0.2em 0.5em; border-radius: 4px; font-family: monospace; display: inline-block; word-break: break-all; }
+        .preview-section { background-color: #e1f5fe; border: 1px solid #b3e5fc; padding: 1em; border-radius: 4px; margin-bottom: 2em; }
+        .preview-title { color: #01579b; margin-top: 0; font-size: 1.2em; border-bottom: 2px solid #b3e5fc; padding-bottom: 0.5em; }
+        .preview-content { white-space: pre-wrap; word-break: break-all; background: #f1f8ff; padding: 1em; border-radius: 4px; border: 1px solid #b3e5fc; font-family: monospace; font-size: 1em; margin: 0; }
+        .button-group { display: flex; gap: 10px; margin-top: 1em; }
 
         @media (max-width: 600px) {
             body { padding: 0.5em; }
@@ -42,6 +48,13 @@
         <h1>IIJmio Usage Checker Config</h1>
         @if($message)
             <div class="message">{{ $message }}</div>
+        @endif
+
+        @if($previewMessage)
+            <section class="preview-section">
+                <h2 class="preview-title">Preview Result</h2>
+                <pre class="preview-content">{{ $previewMessage }}</pre>
+            </section>
         @endif
 
         <p>Firestore Collection: <span class="env-info">{{ $collectionName }}</span></p>
@@ -122,7 +135,10 @@
                 </div>
             </section>
 
-            <button type="submit" class="btn-save">Save Config</button>
+            <div class="button-group">
+                <button type="submit" name="action" value="preview" class="btn-preview">Preview</button>
+                <button type="submit" name="action" value="save" class="btn-save">Save Config</button>
+            </div>
         </form>
 
         <div class="footer">
