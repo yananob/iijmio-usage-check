@@ -15,7 +15,7 @@
         h3 { color: #666; font-size: 1.1em; }
         .field { margin-bottom: 15px; }
         label { display: inline-block; width: 100%; max-width: 200px; font-weight: bold; vertical-align: top; margin-bottom: 5px; }
-        input[type="text"], input[type="password"], input[type="number"] { width: 100%; max-width: 300px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        input[type="text"], input[type="password"], input[type="number"], select { width: 100%; max-width: 300px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .table-container { overflow-x: auto; margin-bottom: 10px; }
         table { width: 100%; border-collapse: collapse; min-width: 500px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
@@ -33,7 +33,7 @@
             body { padding: 0.5em; }
             .container { padding: 1em; }
             label { display: block; max-width: none; }
-            input[type="text"], input[type="password"], input[type="number"] { max-width: none; }
+            input[type="text"], input[type="password"], input[type="number"], select { max-width: none; }
         }
     </style>
 </head>
@@ -80,7 +80,21 @@
                             <tr>
                                 <td><input type="text" name="iijmio[users][{{ $userIndex }}][code]" value="{{ $code }}" required></td>
                                 <td><input type="text" name="iijmio[users][{{ $userIndex }}][name]" value="{{ $name }}" required></td>
-                                <td><input type="number" step="0.1" name="iijmio[users][{{ $userIndex }}][plan_data_volume]" value="{{ $vol }}" required></td>
+                                <td>
+                                    <select name="iijmio[users][{{ $userIndex }}][plan_data_volume]" required>
+                                        <option value="" disabled {{ $vol === '' ? 'selected' : '' }}>Select...</option>
+                                        @php
+                                            $options = [2, 5, 10, 15];
+                                            if ($vol !== '' && !in_array((int)$vol, $options)) {
+                                                $options[] = (float)$vol;
+                                                sort($options);
+                                            }
+                                        @endphp
+                                        @foreach($options as $v)
+                                            <option value="{{ $v }}" {{ (float)$vol === (float)$v ? 'selected' : '' }}>{{ $v }} GB</option>
+                                        @endforeach
+                                    </select>
+                                </td>
                                 <td><button type="button" class="btn-remove" onclick="removeRow(this)">Remove</button></td>
                             </tr>
                             @php $userIndex++; @endphp
@@ -124,7 +138,15 @@
             tr.innerHTML = `
                 <td><input type="text" name="iijmio[users][${userIndex}][code]" value="" required placeholder="hdo12345678"></td>
                 <td><input type="text" name="iijmio[users][${userIndex}][name]" value="" required placeholder="Name"></td>
-                <td><input type="number" step="0.1" name="iijmio[users][${userIndex}][plan_data_volume]" value="" required placeholder="4.0"></td>
+                <td>
+                    <select name="iijmio[users][${userIndex}][plan_data_volume]" required>
+                        <option value="" disabled selected>Select...</option>
+                        <option value="2">2 GB</option>
+                        <option value="5">5 GB</option>
+                        <option value="10">10 GB</option>
+                        <option value="15">15 GB</option>
+                    </select>
+                </td>
                 <td><button type="button" class="btn-remove" onclick="removeRow(this)">Remove</button></td>
             `;
             tbody.appendChild(tr);
