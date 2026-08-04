@@ -212,7 +212,7 @@ final class IijmioUsage
     private function __judgeResult(array $remainingDataVolume, array $monthlyUsages, array $dailyUsages): array
     {
         $totalRemainingDataVolume = array_sum($remainingDataVolume);
-        $estimateUsage = $this->__estimateThisMonthUsage($monthlyUsages);
+        [$estimateUsage, $estimateDetails] = $this->__estimateThisMonthUsage($monthlyUsages);
 
         $planDataVolume = 0.0;
         if (isset($this->iijmioConfig->users)) {
@@ -262,6 +262,38 @@ final class IijmioUsage
         $planDataVolumeStr = sprintf("%.1f", $planDataVolume);
         $totalRemainingDataVolume = sprintf("%.1f", $totalRemainingDataVolume);
 
+        $detailList = [];
+        foreach ($estimateDetails as $user => $detail) {
+            $userName = $user;
+            if (isset($this->iijmioConfig->users->$user)) {
+                $userInfo = $this->iijmioConfig->users->$user;
+                if (is_object($userInfo) && isset($userInfo->name)) {
+                    $userName = $userInfo->name;
+                } elseif (is_array($userInfo) && isset($userInfo['name'])) {
+                    $userName = $userInfo['name'];
+                } elseif (is_string($userInfo)) {
+                    $userName = $userInfo;
+                }
+            }
+
+            if ($detail['type'] === 'history') {
+                $pastDate = $detail['pastDate'];
+                $pastUsageStr = sprintf("%.1f", $detail['pastUsage']);
+                $dayDiff = $detail['dayDiff'];
+                $consumptionStr = sprintf("%+.1f", $detail['consumption']);
+                $avgStr = sprintf("%.2f", $detail['avgConsumptionPerDay']);
+                $remainingDays = $detail['remainingDays'];
+                $detailList[] = "  {$userName}: {$pastDate}({$pastUsageStr}GB)から{$dayDiff}日間で{$consumptionStr}GB(日平均{$avgStr}GB)。残り{$remainingDays}日予測。";
+            } else {
+                $currentDay = $detail['currentDay'];
+                $currentUsageStr = sprintf("%.1f", $detail['currentUsage']);
+                $avgStr = sprintf("%.2f", $detail['avgConsumptionPerDay']);
+                $remainingDays = $detail['remainingDays'];
+                $detailList[] = "  {$userName}: 履歴なし。{$currentDay}日間で{$currentUsageStr}GB(日平均{$avgStr}GB)。残り{$remainingDays}日予測。";
+            }
+        }
+        $detailStr = implode("\n", $detailList);
+
         $message = <<<EOT
 {$subject}
 
@@ -272,12 +304,15 @@ Usage:
 EoM: {$estimateUsage}GB  ({$estimateUsageRate}%)
 Plan: {$planDataVolumeStr}GB
 Left: {$totalRemainingDataVolume}GB
+
+[予測根拠]
+{$detailStr}
 EOT;
 
         return [$isSend, $message];
     }
 
-    private function __estimateThisMonthUsage(array $monthlyUsage): float
+    private function __estimateThisMonthUsage(array $monthlyUsage): array
     {
         $now = new Carbon(timezone: Consts::TIMEZONE);
         $todayStr = $now->format('Y-m-d');
@@ -294,8 +329,10 @@ EOT;
         krsort($monthlyHistory);
 
         $totalEstimated = 0.0;
+        $details = [];
         foreach ($monthlyUsage as $user => $currentUsage) {
             $estimatedUserUsage = null;
+            $detail = [];
             foreach ($monthlyHistory as $dateStr => $usages) {
                 $userPastUsage = null;
                 if (is_object($usages) && isset($usages->$user)) {
@@ -313,6 +350,17 @@ EOT;
                         $remainingDays = $daysInMonth - $currentDay;
                         $estimatedUserUsage = $currentUsage + ($avgConsumptionPerDay * $remainingDays);
                         $this->logger?->info("User {$user}: estimated using history of {$dateStr}. Past: {$userPastUsage}GB, Current: {$currentUsage}GB, Diff days: {$dayDiff}, Avg/Day: {$avgConsumptionPerDay}GB. Estimate: {$estimatedUserUsage}GB");
+
+                        $detail = [
+                            'type' => 'history',
+                            'pastDate' => $pastCarbon->format('m/d'),
+                            'pastUsage' => $userPastUsage,
+                            'currentUsage' => $currentUsage,
+                            'dayDiff' => $dayDiff,
+                            'consumption' => round($consumption, 2),
+                            'avgConsumptionPerDay' => round($avgConsumptionPerDay, 4),
+                            'remainingDays' => $remainingDays,
+                        ];
                         break;
                     }
                 }
@@ -321,12 +369,23 @@ EOT;
             if ($estimatedUserUsage === null) {
                 $estimatedUserUsage = ($currentUsage / $currentDay) * $daysInMonth;
                 $this->logger?->info("User {$user}: no history found. Estimate using simple proportion: {$estimatedUserUsage}GB");
+                $avgConsumptionPerDay = $currentUsage / $currentDay;
+                $remainingDays = $daysInMonth - $currentDay;
+
+                $detail = [
+                    'type' => 'simple',
+                    'currentDay' => $currentDay,
+                    'currentUsage' => $currentUsage,
+                    'avgConsumptionPerDay' => round($avgConsumptionPerDay, 4),
+                    'remainingDays' => $remainingDays,
+                ];
             }
 
             $totalEstimated += $estimatedUserUsage;
+            $details[$user] = $detail;
         }
 
-        return round($totalEstimated, 1);
+        return [round($totalEstimated, 1), $details];
     }
 
 }
