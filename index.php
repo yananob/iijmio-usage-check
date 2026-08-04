@@ -9,6 +9,8 @@ use App\Utils\Line;
 use App\IijmioUsage;
 use App\AppConfig;
 use App\Firestore;
+use App\Consts;
+use Carbon\Carbon;
 use Psr\Http\Message\ServerRequestInterface;
 use eftec\bladeone\BladeOne;
 
@@ -56,10 +58,14 @@ function main_http(ServerRequestInterface $request): string
         } elseif ($action === 'preview') {
             $configObj = (object)json_decode(json_encode($configData));
             $logger = new Logger("preview");
+            $historyDoc = $firestore->collection($collectionName)->document('history')->snapshot();
+            $history = $historyDoc->exists() ? $historyDoc->data() : [];
+
             $iijmio = new IijmioUsage(
                 $configObj->iijmio,
                 $configObj->alert->send_usage_each_n_days,
-                $logger
+                $logger,
+                $history
             );
             try {
                 [, $previewMessage] = $iijmio->getStats();
@@ -107,12 +113,25 @@ function main_event(CloudEventInterface $event): void
 
     $config = (object)json_decode(json_encode($doc->data()));
 
+    $historyDoc = $firestore->collection($collectionName)->document('history')->snapshot();
+    $history = $historyDoc->exists() ? $historyDoc->data() : [];
+
     $iijmio = new IijmioUsage(
         $config->iijmio,
         $config->alert->send_usage_each_n_days,
-        $logger
+        $logger,
+        $history
     );
-    [$isSendAlert, $message] = $iijmio->getStats();
+    [$isSendAlert, $message, $monthlyUsages] = $iijmio->getStats();
+
+    if (!empty($monthlyUsages)) {
+        $today = (new Carbon(timezone: Consts::TIMEZONE))->format('Y-m-d');
+        $firestore->collection($collectionName)->document('history')->set([
+            $today => $monthlyUsages
+        ], ['merge' => true]);
+        $logger->log("Saved daily usage history for {$today}.");
+    }
+
     if ($isSendAlert) {
         $lineTokensAndTargets = json_decode(getenv('LINE_TOKENS_N_TARGETS'), false);
         $botName = $config->alert->bot ?? null;
