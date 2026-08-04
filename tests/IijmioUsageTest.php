@@ -137,4 +137,57 @@ EOT;
         $this->assertSame(9.9, $result);
     }
 
+    public function testEstimateThisMonthUsageWithHistory(): void
+    {
+        Carbon::setTestNow(new Carbon('2024-11-10 12:00:00', timezone: Consts::TIMEZONE));
+
+        $history = [
+            "2024-11-06" => [
+                "hdo12345678" => 0.7,
+                "hdo22345678" => 1.8
+            ],
+            "2024-10-31" => [
+                "hdo12345678" => 0.5,
+                "hdo22345678" => 1.5
+            ]
+        ];
+
+        $iijmio = new IijmioUsage(
+            iijmioConfig: $this->config->iijmio,
+            history: $history
+        );
+
+        $result = Test::invokePrivateMethod(
+            $iijmio,
+            "__estimateThisMonthUsage",
+            ["hdo12345678" => 1.1, "hdo22345678" => 2.2]
+        );
+
+        $this->assertSame(7.3, $result);
+    }
+
+    public function testEstimateThisMonthUsageWithNegativeConsumptionHistory(): void
+    {
+        Carbon::setTestNow(new Carbon('2024-11-10 12:00:00', timezone: Consts::TIMEZONE));
+
+        $history = [
+            "2024-11-06" => [
+                "hdo12345678" => 1.5,
+            ]
+        ];
+
+        $iijmio = new IijmioUsage(
+            iijmioConfig: $this->config->iijmio,
+            history: $history
+        );
+
+        $result = Test::invokePrivateMethod(
+            $iijmio,
+            "__estimateThisMonthUsage",
+            ["hdo12345678" => 1.1, "hdo22345678" => 2.2]
+        );
+
+        $this->assertSame(7.7, $result);
+    }
+
 }

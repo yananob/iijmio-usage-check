@@ -12,7 +12,8 @@ final class IijmioUsage
     public function __construct(
         private object $iijmioConfig,
         private int $sendEachNDays = 10,
-        private ?Logger $logger = null
+        private ?Logger $logger = null,
+        private array $history = []
     ) {
     }
 
@@ -21,7 +22,8 @@ final class IijmioUsage
         $this->logger?->info("Starting to crawl IIJmio usage data...");
         [$remainingDataVolume, $monthlyUsages, $dailyUsages] = $this->__crawl();
         $this->logger?->info("Successfully crawled data.");
-        return $this->__judgeResult($remainingDataVolume, $monthlyUsages, $dailyUsages);
+        [$isSend, $message] = $this->__judgeResult($remainingDataVolume, $monthlyUsages, $dailyUsages);
+        return [$isSend, $message, $monthlyUsages];
     }
 
     private function __crawl(): array
@@ -278,7 +280,53 @@ EOT;
     private function __estimateThisMonthUsage(array $monthlyUsage): float
     {
         $now = new Carbon(timezone: Consts::TIMEZONE);
-        return round(array_sum($monthlyUsage) * $now->daysInMonth() / $now->day, 1);
+        $todayStr = $now->format('Y-m-d');
+        $currentYearMonth = $now->format('Y-m');
+        $daysInMonth = $now->daysInMonth();
+        $currentDay = $now->day;
+
+        $monthlyHistory = [];
+        foreach ($this->history as $dateStr => $usages) {
+            if (str_starts_with($dateStr, $currentYearMonth) && $dateStr < $todayStr) {
+                $monthlyHistory[$dateStr] = $usages;
+            }
+        }
+        krsort($monthlyHistory);
+
+        $totalEstimated = 0.0;
+        foreach ($monthlyUsage as $user => $currentUsage) {
+            $estimatedUserUsage = null;
+            foreach ($monthlyHistory as $dateStr => $usages) {
+                $userPastUsage = null;
+                if (is_object($usages) && isset($usages->$user)) {
+                    $userPastUsage = (float)$usages->$user;
+                } elseif (is_array($usages) && isset($usages[$user])) {
+                    $userPastUsage = (float)$usages[$user];
+                }
+
+                if ($userPastUsage !== null) {
+                    $pastCarbon = new Carbon($dateStr, timezone: Consts::TIMEZONE);
+                    $dayDiff = $currentDay - $pastCarbon->day;
+                    if ($dayDiff >= 1) {
+                        $consumption = $currentUsage - $userPastUsage;
+                        $avgConsumptionPerDay = max(0.0, $consumption / $dayDiff);
+                        $remainingDays = $daysInMonth - $currentDay;
+                        $estimatedUserUsage = $currentUsage + ($avgConsumptionPerDay * $remainingDays);
+                        $this->logger?->info("User {$user}: estimated using history of {$dateStr}. Past: {$userPastUsage}GB, Current: {$currentUsage}GB, Diff days: {$dayDiff}, Avg/Day: {$avgConsumptionPerDay}GB. Estimate: {$estimatedUserUsage}GB");
+                        break;
+                    }
+                }
+            }
+
+            if ($estimatedUserUsage === null) {
+                $estimatedUserUsage = ($currentUsage / $currentDay) * $daysInMonth;
+                $this->logger?->info("User {$user}: no history found. Estimate using simple proportion: {$estimatedUserUsage}GB");
+            }
+
+            $totalEstimated += $estimatedUserUsage;
+        }
+
+        return round($totalEstimated, 1);
     }
 
 }
