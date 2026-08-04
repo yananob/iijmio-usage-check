@@ -81,6 +81,10 @@ Usage:
 EoM: 5.2GB  (87%)
 Plan: 6.0GB
 Left: 6.5GB
+
+[予測根拠]
+  user1: 履歴なし。11日間で0.9GB(日平均0.08GB)。残り19日予測。
+  user2: 履歴なし。11日間で1.0GB(日平均0.09GB)。残り19日予測。
 EOT;
         $this->assertEquals($expectedMessage, $message);
 
@@ -94,6 +98,7 @@ EOT;
             ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
         );
         $this->assertTrue($isSendAlert);
+        $this->assertStringContainsString("[予測根拠]\n  user1: 履歴なし。20日間で0.9GB(日平均0.04GB)。残り10日予測。\n  user2: 履歴なし。20日間で1.0GB(日平均0.05GB)。残り10日予測。", $message);
 
         // アラートあり（使用量同じだが、日付がまだ月初に近い）
         Carbon::setTestNow(new Carbon('2024-11-09 12:00:00', timezone: Consts::TIMEZONE));
@@ -117,6 +122,10 @@ Usage:
 EoM: 6.3GB  (105%)
 Plan: 6.0GB
 Left: 6.5GB
+
+[予測根拠]
+  user1: 履歴なし。9日間で0.9GB(日平均0.10GB)。残り21日予測。
+  user2: 履歴なし。9日間で1.0GB(日平均0.11GB)。残り21日予測。
 EOT;
         $this->assertEquals($expectedMessage, $message);
     }
@@ -126,15 +135,19 @@ EOT;
         Carbon::setTestNow(new Carbon('2024-11-10 12:00:00', timezone: Consts::TIMEZONE));
 
         $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
-        $result = Test::invokePrivateMethod(
+        [$result, $details] = Test::invokePrivateMethod(
             $iijmio,
             "__estimateThisMonthUsage",
-            ["hdo12345678" => 1.1, "hdo22345678" => 2.2],
-            ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
+            ["hdo12345678" => 1.1, "hdo22345678" => 2.2]
         );
 
-        $this->assertNotEmpty($result);
         $this->assertSame(9.9, $result);
+        $this->assertCount(2, $details);
+        $this->assertSame('simple', $details['hdo12345678']['type']);
+        $this->assertSame(10, $details['hdo12345678']['currentDay']);
+        $this->assertSame(1.1, $details['hdo12345678']['currentUsage']);
+        $this->assertSame(0.11, $details['hdo12345678']['avgConsumptionPerDay']);
+        $this->assertSame(20, $details['hdo12345678']['remainingDays']);
     }
 
     public function testEstimateThisMonthUsageWithHistory(): void
@@ -157,13 +170,20 @@ EOT;
             history: $history
         );
 
-        $result = Test::invokePrivateMethod(
+        [$result, $details] = Test::invokePrivateMethod(
             $iijmio,
             "__estimateThisMonthUsage",
             ["hdo12345678" => 1.1, "hdo22345678" => 2.2]
         );
 
         $this->assertSame(7.3, $result);
+        $this->assertSame('history', $details['hdo12345678']['type']);
+        $this->assertSame('11/06', $details['hdo12345678']['pastDate']);
+        $this->assertSame(0.7, $details['hdo12345678']['pastUsage']);
+        $this->assertSame(4, $details['hdo12345678']['dayDiff']);
+        $this->assertSame(0.4, $details['hdo12345678']['consumption']);
+        $this->assertSame(0.1, $details['hdo12345678']['avgConsumptionPerDay']);
+        $this->assertSame(20, $details['hdo12345678']['remainingDays']);
     }
 
     public function testEstimateThisMonthUsageWithNegativeConsumptionHistory(): void
@@ -181,13 +201,16 @@ EOT;
             history: $history
         );
 
-        $result = Test::invokePrivateMethod(
+        [$result, $details] = Test::invokePrivateMethod(
             $iijmio,
             "__estimateThisMonthUsage",
             ["hdo12345678" => 1.1, "hdo22345678" => 2.2]
         );
 
         $this->assertSame(7.7, $result);
+        $this->assertSame('history', $details['hdo12345678']['type']);
+        $this->assertSame(-0.4, $details['hdo12345678']['consumption']);
+        $this->assertSame(0.0, $details['hdo12345678']['avgConsumptionPerDay']);
     }
 
 }
