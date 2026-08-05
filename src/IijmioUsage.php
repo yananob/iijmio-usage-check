@@ -262,6 +262,8 @@ final class IijmioUsage
         $planDataVolumeStr = sprintf("%.1f", $planDataVolume);
         $totalRemainingDataVolume = sprintf("%.1f", $totalRemainingDataVolume);
 
+        $remainingDays = $now->daysInMonth() - $now->day;
+
         $detailList = [];
         foreach ($estimateDetails as $user => $detail) {
             $userName = $user;
@@ -276,20 +278,20 @@ final class IijmioUsage
                 }
             }
 
+            $estimatedUserUsageStr = sprintf("%.1f", $detail['estimatedUserUsage']);
+
             if ($detail['type'] === 'history') {
                 $pastDate = $detail['pastDate'];
                 $pastUsageStr = sprintf("%.1f", $detail['pastUsage']);
                 $dayDiff = $detail['dayDiff'];
                 $consumptionStr = sprintf("%+.1f", $detail['consumption']);
                 $avgStr = sprintf("%.2f", $detail['avgConsumptionPerDay']);
-                $remainingDays = $detail['remainingDays'];
-                $detailList[] = "  {$userName}: {$pastDate}({$pastUsageStr}GB)から{$dayDiff}日間で{$consumptionStr}GB(日平均{$avgStr}GB)。残り{$remainingDays}日予測。";
+                $detailList[] = "  {$userName}: {$pastDate}({$pastUsageStr}GB)から{$dayDiff}日間で{$consumptionStr}GB(日平均{$avgStr}GB) -> 月末予測: {$estimatedUserUsageStr}GB";
             } else {
                 $currentDay = $detail['currentDay'];
                 $currentUsageStr = sprintf("%.1f", $detail['currentUsage']);
                 $avgStr = sprintf("%.2f", $detail['avgConsumptionPerDay']);
-                $remainingDays = $detail['remainingDays'];
-                $detailList[] = "  {$userName}: 履歴なし。{$currentDay}日間で{$currentUsageStr}GB(日平均{$avgStr}GB)。残り{$remainingDays}日予測。";
+                $detailList[] = "  {$userName}: 履歴なし。{$currentDay}日間で{$currentUsageStr}GB(日平均{$avgStr}GB) -> 月末予測: {$estimatedUserUsageStr}GB";
             }
         }
         $detailStr = implode("\n", $detailList);
@@ -305,7 +307,7 @@ EoM: {$estimateUsage}GB  ({$estimateUsageRate}%)
 Plan: {$planDataVolumeStr}GB
 Left: {$totalRemainingDataVolume}GB
 
-[予測根拠]
+[予測根拠] (残り{$remainingDays}日)
 {$detailStr}
 EOT;
 
@@ -360,6 +362,7 @@ EOT;
                             'consumption' => round($consumption, 2),
                             'avgConsumptionPerDay' => round($avgConsumptionPerDay, 4),
                             'remainingDays' => $remainingDays,
+                            'estimatedUserUsage' => $estimatedUserUsage,
                         ];
                         break;
                     }
@@ -378,6 +381,7 @@ EOT;
                     'currentUsage' => $currentUsage,
                     'avgConsumptionPerDay' => round($avgConsumptionPerDay, 4),
                     'remainingDays' => $remainingDays,
+                    'estimatedUserUsage' => $estimatedUserUsage,
                 ];
             }
 

@@ -82,9 +82,9 @@ EoM: 5.2GB  (87%)
 Plan: 6.0GB
 Left: 6.5GB
 
-[予測根拠]
-  user1: 履歴なし。11日間で0.9GB(日平均0.08GB)。残り19日予測。
-  user2: 履歴なし。11日間で1.0GB(日平均0.09GB)。残り19日予測。
+[予測根拠] (残り19日)
+  user1: 履歴なし。11日間で0.9GB(日平均0.08GB) -> 月末予測: 2.5GB
+  user2: 履歴なし。11日間で1.0GB(日平均0.09GB) -> 月末予測: 2.7GB
 EOT;
         $this->assertEquals($expectedMessage, $message);
 
@@ -98,7 +98,7 @@ EOT;
             ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
         );
         $this->assertTrue($isSendAlert);
-        $this->assertStringContainsString("[予測根拠]\n  user1: 履歴なし。20日間で0.9GB(日平均0.04GB)。残り10日予測。\n  user2: 履歴なし。20日間で1.0GB(日平均0.05GB)。残り10日予測。", $message);
+        $this->assertStringContainsString("[予測根拠] (残り10日)\n  user1: 履歴なし。20日間で0.9GB(日平均0.04GB) -> 月末予測: 1.3GB\n  user2: 履歴なし。20日間で1.0GB(日平均0.05GB) -> 月末予測: 1.5GB", $message);
 
         // アラートあり（使用量同じだが、日付がまだ月初に近い）
         Carbon::setTestNow(new Carbon('2024-11-09 12:00:00', timezone: Consts::TIMEZONE));
@@ -123,9 +123,9 @@ EoM: 6.3GB  (105%)
 Plan: 6.0GB
 Left: 6.5GB
 
-[予測根拠]
-  user1: 履歴なし。9日間で0.9GB(日平均0.10GB)。残り21日予測。
-  user2: 履歴なし。9日間で1.0GB(日平均0.11GB)。残り21日予測。
+[予測根拠] (残り21日)
+  user1: 履歴なし。9日間で0.9GB(日平均0.10GB) -> 月末予測: 3.0GB
+  user2: 履歴なし。9日間で1.0GB(日平均0.11GB) -> 月末予測: 3.3GB
 EOT;
         $this->assertEquals($expectedMessage, $message);
     }
