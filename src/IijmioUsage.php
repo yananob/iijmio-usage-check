@@ -333,8 +333,11 @@ EOT;
         $totalEstimated = 0.0;
         $details = [];
         foreach ($monthlyUsage as $user => $currentUsage) {
-            $estimatedUserUsage = null;
-            $detail = [];
+            $bestDateStr = null;
+            $bestUserPastUsage = null;
+            $bestDayDiff = null;
+            $minDistance = null;
+
             foreach ($monthlyHistory as $dateStr => $usages) {
                 $userPastUsage = null;
                 if (is_object($usages) && isset($usages->$user)) {
@@ -347,26 +350,39 @@ EOT;
                     $pastCarbon = new Carbon($dateStr, timezone: Consts::TIMEZONE);
                     $dayDiff = $currentDay - $pastCarbon->day;
                     if ($dayDiff >= 1) {
-                        $consumption = $currentUsage - $userPastUsage;
-                        $avgConsumptionPerDay = max(0.0, $consumption / $dayDiff);
-                        $remainingDays = $daysInMonth - $currentDay;
-                        $estimatedUserUsage = $currentUsage + ($avgConsumptionPerDay * $remainingDays);
-                        $this->logger?->info("User {$user}: estimated using history of {$dateStr}. Past: {$userPastUsage}GB, Current: {$currentUsage}GB, Diff days: {$dayDiff}, Avg/Day: {$avgConsumptionPerDay}GB. Estimate: {$estimatedUserUsage}GB");
-
-                        $detail = [
-                            'type' => 'history',
-                            'pastDate' => $pastCarbon->format('m/d'),
-                            'pastUsage' => $userPastUsage,
-                            'currentUsage' => $currentUsage,
-                            'dayDiff' => $dayDiff,
-                            'consumption' => round($consumption, 2),
-                            'avgConsumptionPerDay' => round($avgConsumptionPerDay, 4),
-                            'remainingDays' => $remainingDays,
-                            'estimatedUserUsage' => $estimatedUserUsage,
-                        ];
-                        break;
+                        $distance = abs($dayDiff - 7);
+                        if ($minDistance === null || $distance < $minDistance || ($distance === $minDistance && $dayDiff > $bestDayDiff)) {
+                            $minDistance = $distance;
+                            $bestDayDiff = $dayDiff;
+                            $bestDateStr = $dateStr;
+                            $bestUserPastUsage = $userPastUsage;
+                        }
                     }
                 }
+            }
+
+            $estimatedUserUsage = null;
+            $detail = [];
+            if ($bestDateStr !== null && $bestUserPastUsage !== null && $bestDayDiff !== null) {
+                $consumption = $currentUsage - $bestUserPastUsage;
+                $avgConsumptionPerDay = max(0.0, $consumption / $bestDayDiff);
+                $remainingDays = $daysInMonth - $currentDay;
+                $estimatedUserUsage = $currentUsage + ($avgConsumptionPerDay * $remainingDays);
+
+                $pastCarbon = new Carbon($bestDateStr, timezone: Consts::TIMEZONE);
+                $this->logger?->info("User {$user}: estimated using history of {$bestDateStr}. Past: {$bestUserPastUsage}GB, Current: {$currentUsage}GB, Diff days: {$bestDayDiff}, Avg/Day: {$avgConsumptionPerDay}GB. Estimate: {$estimatedUserUsage}GB");
+
+                $detail = [
+                    'type' => 'history',
+                    'pastDate' => $pastCarbon->format('m/d'),
+                    'pastUsage' => $bestUserPastUsage,
+                    'currentUsage' => $currentUsage,
+                    'dayDiff' => $bestDayDiff,
+                    'consumption' => round($consumption, 2),
+                    'avgConsumptionPerDay' => round($avgConsumptionPerDay, 4),
+                    'remainingDays' => $remainingDays,
+                    'estimatedUserUsage' => $estimatedUserUsage,
+                ];
             }
 
             if ($estimatedUserUsage === null) {

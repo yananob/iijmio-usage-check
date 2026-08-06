@@ -213,4 +213,72 @@ EOT;
         $this->assertSame(0.0, $details['hdo12345678']['avgConsumptionPerDay']);
     }
 
+    public function testEstimateThisMonthUsageWithMultipleHistory(): void
+    {
+        // 1. Exact match (7 days ago) should be preferred.
+        Carbon::setTestNow(new Carbon('2024-11-15 12:00:00', timezone: Consts::TIMEZONE));
+
+        $history = [
+            "2024-11-14" => [ // 1 day ago
+                "hdo12345678" => 1.4,
+            ],
+            "2024-11-10" => [ // 5 days ago
+                "hdo12345678" => 1.0,
+            ],
+            "2024-11-08" => [ // 7 days ago (target)
+                "hdo12345678" => 0.8,
+            ],
+            "2024-11-06" => [ // 9 days ago
+                "hdo12345678" => 0.6,
+            ]
+        ];
+
+        $iijmio = new IijmioUsage(
+            iijmioConfig: $this->config->iijmio,
+            history: $history
+        );
+
+        [$result, $details] = Test::invokePrivateMethod(
+            $iijmio,
+            "__estimateThisMonthUsage",
+            ["hdo12345678" => 1.5, "hdo22345678" => 2.0]
+        );
+
+        $this->assertSame('history', $details['hdo12345678']['type']);
+        $this->assertSame('11/08', $details['hdo12345678']['pastDate']);
+        $this->assertSame(7, $details['hdo12345678']['dayDiff']);
+        $this->assertSame(0.8, $details['hdo12345678']['pastUsage']);
+    }
+
+    public function testEstimateThisMonthUsageWithHistoryTieBreaking(): void
+    {
+        // 2. Tie breaking: 6 days ago vs 8 days ago. 8 days ago has larger dayDiff, so should be chosen.
+        Carbon::setTestNow(new Carbon('2024-11-15 12:00:00', timezone: Consts::TIMEZONE));
+
+        $history = [
+            "2024-11-09" => [ // 6 days ago
+                "hdo12345678" => 0.9,
+            ],
+            "2024-11-07" => [ // 8 days ago (larger dayDiff tie-breaker)
+                "hdo12345678" => 0.7,
+            ]
+        ];
+
+        $iijmio = new IijmioUsage(
+            iijmioConfig: $this->config->iijmio,
+            history: $history
+        );
+
+        [$result, $details] = Test::invokePrivateMethod(
+            $iijmio,
+            "__estimateThisMonthUsage",
+            ["hdo12345678" => 1.5, "hdo22345678" => 2.0]
+        );
+
+        $this->assertSame('history', $details['hdo12345678']['type']);
+        $this->assertSame('11/07', $details['hdo12345678']['pastDate']);
+        $this->assertSame(8, $details['hdo12345678']['dayDiff']);
+        $this->assertSame(0.7, $details['hdo12345678']['pastUsage']);
+    }
+
 }
