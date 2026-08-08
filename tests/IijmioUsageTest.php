@@ -21,14 +21,6 @@ final class IijmioUsageTest extends TestCase
         $this->config = (object)json_decode($content, false);
     }
 
-    // public function testCrawl(): void
-    // {
-    //     $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
-        // REPLACE $this->config->iijmio->mio_io and password to test
-    //     $result = Test::invokePrivateMethod($iijmio, "__crawl");
-    //     $this->assertNotEmpty($result);
-    // }
-
     public function testParseMonthlyUsagePage(): void
     {
         $content = file_get_contents(__DIR__ . "/data/monthly_usage.html");
@@ -83,8 +75,8 @@ Plan: 6.0GB
 Left: 6.5GB
 
 [予測根拠] (残り19日)
-  user1: 履歴なし。11日間で0.9GB(日平均0.08GB) -> 月末予測: 2.5GB
-  user2: 履歴なし。11日間で1.0GB(日平均0.09GB) -> 月末予測: 2.7GB
+  user1: 日平均 0.08GB [内訳: 月初来 0.08GB(100%)] -> 月末予測: 2.5GB
+  user2: 日平均 0.09GB [内訳: 月初来 0.09GB(100%)] -> 月末予測: 2.7GB
 EOT;
         $this->assertEquals($expectedMessage, $message);
 
@@ -98,7 +90,7 @@ EOT;
             ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
         );
         $this->assertTrue($isSendAlert);
-        $this->assertStringContainsString("[予測根拠] (残り10日)\n  user1: 履歴なし。20日間で0.9GB(日平均0.04GB) -> 月末予測: 1.3GB\n  user2: 履歴なし。20日間で1.0GB(日平均0.05GB) -> 月末予測: 1.5GB", $message);
+        $this->assertStringContainsString("[予測根拠] (残り10日)\n  user1: 日平均 0.04GB [内訳: 月初来 0.04GB(100%)] -> 月末予測: 1.4GB\n  user2: 日平均 0.05GB [内訳: 月初来 0.05GB(100%)] -> 月末予測: 1.5GB", $message);
 
         // アラートあり（使用量同じだが、日付がまだ月初に近い）
         Carbon::setTestNow(new Carbon('2024-11-09 12:00:00', timezone: Consts::TIMEZONE));
@@ -124,8 +116,8 @@ Plan: 6.0GB
 Left: 6.5GB
 
 [予測根拠] (残り21日)
-  user1: 履歴なし。9日間で0.9GB(日平均0.10GB) -> 月末予測: 3.0GB
-  user2: 履歴なし。9日間で1.0GB(日平均0.11GB) -> 月末予測: 3.3GB
+  user1: 日平均 0.10GB [内訳: 月初来 0.10GB(100%)] -> 月末予測: 3.0GB
+  user2: 日平均 0.11GB [内訳: 月初来 0.11GB(100%)] -> 月末予測: 3.3GB
 EOT;
         $this->assertEquals($expectedMessage, $message);
     }
@@ -143,7 +135,7 @@ EOT;
 
         $this->assertSame(9.9, $result);
         $this->assertCount(2, $details);
-        $this->assertSame('simple', $details['hdo12345678']['type']);
+        $this->assertSame('blended', $details['hdo12345678']['type']);
         $this->assertSame(10, $details['hdo12345678']['currentDay']);
         $this->assertSame(1.1, $details['hdo12345678']['currentUsage']);
         $this->assertSame(0.11, $details['hdo12345678']['avgConsumptionPerDay']);
@@ -176,13 +168,11 @@ EOT;
             ["hdo12345678" => 1.1, "hdo22345678" => 2.2]
         );
 
-        $this->assertSame(7.3, $result);
-        $this->assertSame('history', $details['hdo12345678']['type']);
+        $this->assertSame(8.6, $result);
+        $this->assertSame('blended', $details['hdo12345678']['type']);
         $this->assertSame('11/06', $details['hdo12345678']['pastDate']);
-        $this->assertSame(0.7, $details['hdo12345678']['pastUsage']);
         $this->assertSame(4, $details['hdo12345678']['dayDiff']);
-        $this->assertSame(0.4, $details['hdo12345678']['consumption']);
-        $this->assertSame(0.1, $details['hdo12345678']['avgConsumptionPerDay']);
+        $this->assertSame(0.105, $details['hdo12345678']['avgConsumptionPerDay']);
         $this->assertSame(20, $details['hdo12345678']['remainingDays']);
     }
 
@@ -207,15 +197,13 @@ EOT;
             ["hdo12345678" => 1.1, "hdo22345678" => 2.2]
         );
 
-        $this->assertSame(7.7, $result);
-        $this->assertSame('history', $details['hdo12345678']['type']);
-        $this->assertSame(-0.4, $details['hdo12345678']['consumption']);
-        $this->assertSame(0.0, $details['hdo12345678']['avgConsumptionPerDay']);
+        $this->assertSame(8.8, $result);
+        $this->assertSame('blended', $details['hdo12345678']['type']);
+        $this->assertSame(0.055, $details['hdo12345678']['avgConsumptionPerDay']);
     }
 
     public function testEstimateThisMonthUsageWithMultipleHistory(): void
     {
-        // 1. Exact match (7 days ago) should be preferred.
         Carbon::setTestNow(new Carbon('2024-11-15 12:00:00', timezone: Consts::TIMEZONE));
 
         $history = [
@@ -244,15 +232,13 @@ EOT;
             ["hdo12345678" => 1.5, "hdo22345678" => 2.0]
         );
 
-        $this->assertSame('history', $details['hdo12345678']['type']);
+        $this->assertSame('blended', $details['hdo12345678']['type']);
         $this->assertSame('11/08', $details['hdo12345678']['pastDate']);
         $this->assertSame(7, $details['hdo12345678']['dayDiff']);
-        $this->assertSame(0.8, $details['hdo12345678']['pastUsage']);
     }
 
     public function testEstimateThisMonthUsageWithHistoryTieBreaking(): void
     {
-        // 2. Tie breaking: 6 days ago vs 8 days ago. 8 days ago has larger dayDiff, so should be chosen.
         Carbon::setTestNow(new Carbon('2024-11-15 12:00:00', timezone: Consts::TIMEZONE));
 
         $history = [
@@ -275,10 +261,53 @@ EOT;
             ["hdo12345678" => 1.5, "hdo22345678" => 2.0]
         );
 
-        $this->assertSame('history', $details['hdo12345678']['type']);
+        $this->assertSame('blended', $details['hdo12345678']['type']);
         $this->assertSame('11/07', $details['hdo12345678']['pastDate']);
         $this->assertSame(8, $details['hdo12345678']['dayDiff']);
-        $this->assertSame(0.7, $details['hdo12345678']['pastUsage']);
     }
 
+    public function testEstimateThisMonthUsageWithBaselineAndPreviousMonth(): void
+    {
+        // 11月4日 (経過日数 T = 4)
+        Carbon::setTestNow(new Carbon('2024-11-04 12:00:00', timezone: Consts::TIMEZONE));
+
+        $history = [
+            "2024-10-31" => [ // 前月の最終履歴レコード (31日)
+                "hdo12345678" => 3.1,
+                "hdo22345678" => 6.2
+            ]
+        ];
+
+        $iijmio = new IijmioUsage(
+            iijmioConfig: $this->config->iijmio,
+            history: $history
+        );
+
+        [$result, $details] = Test::invokePrivateMethod(
+            $iijmio,
+            "__estimateThisMonthUsage",
+            ["hdo12345678" => 0.8, "hdo22345678" => 1.6]
+        );
+
+        // hdo12345678 の期待値計算:
+        // T = 4, wCurrent = (4-1)/7 = 3/7 = 0.4285714
+        // rCumulative = 0.8 / 4 = 0.2
+        // rBaseline (前月実績) = 3.1 / 31 = 0.1
+        // rCurrentBlended = rCumulative = 0.2
+        // rProjected = 0.4285714 * 0.2 + (1 - 0.4285714) * 0.1 = 0.142857
+        // estimated = 0.8 + 0.142857 * 26 = 4.514
+
+        // hdo22345678 の期待値計算:
+        // rCumulative = 1.6 / 4 = 0.4
+        // rBaseline (前月実績) = 6.2 / 31 = 0.2
+        // rCurrentBlended = rCumulative = 0.4
+        // rProjected = 0.4285714 * 0.4 + (1 - 0.4285714) * 0.2 = 0.285714
+        // estimated = 1.6 + 0.285714 * 26 = 9.028
+
+        // Total = 4.514 + 9.028 = 13.542 => round(13.5, 1) = 13.5
+        $this->assertSame(13.5, $result);
+        $this->assertSame(0.1429, $details['hdo12345678']['avgConsumptionPerDay']);
+        $this->assertSame(0.2857, $details['hdo22345678']['avgConsumptionPerDay']);
+        $this->assertSame('previous_month', $details['hdo12345678']['baselineSource']);
+    }
 }

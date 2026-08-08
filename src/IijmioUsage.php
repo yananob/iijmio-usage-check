@@ -279,19 +279,30 @@ final class IijmioUsage
             }
 
             $estimatedUserUsageStr = sprintf("%.1f", $detail['estimatedUserUsage']);
+            $rProjectedStr = sprintf("%.2f", $detail['avgConsumptionPerDay']);
 
-            if ($detail['type'] === 'history') {
-                $pastDate = $detail['pastDate'];
-                $pastUsageStr = sprintf("%.1f", $detail['pastUsage']);
-                $dayDiff = $detail['dayDiff'];
-                $consumptionStr = sprintf("%+.1f", $detail['consumption']);
-                $avgStr = sprintf("%.2f", $detail['avgConsumptionPerDay']);
-                $detailList[] = "  {$userName}: {$pastDate}({$pastUsageStr}GB)から{$dayDiff}日間で{$consumptionStr}GB(日平均{$avgStr}GB) -> 月末予測: {$estimatedUserUsageStr}GB";
+            if ($detail['wCurrent'] < 1.0) {
+                // Beginning of the month (blended with baseline)
+                $rCurrentBlended = $detail['hasRecent']
+                    ? (0.5 * $detail['rRecent'] + 0.5 * $detail['rCumulative'])
+                    : $detail['rCumulative'];
+                $rCurrentBlendedStr = sprintf("%.2f", $rCurrentBlended);
+                $rBaselineStr = sprintf("%.2f", $detail['rBaseline']);
+                $wCurrentPct = (int)round($detail['wCurrent'] * 100);
+                $wBaselinePct = 100 - $wCurrentPct;
+
+                $detailList[] = "  {$userName}: 日平均 {$rProjectedStr}GB [内訳: 今月実績 {$rCurrentBlendedStr}GB×{$wCurrentPct}% + 前月/計画 {$rBaselineStr}GB×{$wBaselinePct}%] -> 月末予測: {$estimatedUserUsageStr}GB";
             } else {
-                $currentDay = $detail['currentDay'];
-                $currentUsageStr = sprintf("%.1f", $detail['currentUsage']);
-                $avgStr = sprintf("%.2f", $detail['avgConsumptionPerDay']);
-                $detailList[] = "  {$userName}: 履歴なし。{$currentDay}日間で{$currentUsageStr}GB(日平均{$avgStr}GB) -> 月末予測: {$estimatedUserUsageStr}GB";
+                // Middle/end of the month (100% current month)
+                if ($detail['hasRecent']) {
+                    $dayDiff = $detail['dayDiff'];
+                    $rRecentStr = sprintf("%.2f", $detail['rRecent']);
+                    $rCumulativeStr = sprintf("%.2f", $detail['rCumulative']);
+                    $detailList[] = "  {$userName}: 日平均 {$rProjectedStr}GB [内訳: 直近{$dayDiff}日 {$rRecentStr}GB×50% + 月初来 {$rCumulativeStr}GB×50%] -> 月末予測: {$estimatedUserUsageStr}GB";
+                } else {
+                    $rCumulativeStr = sprintf("%.2f", $detail['rCumulative']);
+                    $detailList[] = "  {$userName}: 日平均 {$rProjectedStr}GB [内訳: 月初来 {$rCumulativeStr}GB(100%)] -> 月末予測: {$estimatedUserUsageStr}GB";
+                }
             }
         }
         $detailStr = implode("\n", $detailList);
@@ -319,20 +330,65 @@ EOT;
         $now = new Carbon(timezone: Consts::TIMEZONE);
         $todayStr = $now->format('Y-m-d');
         $currentYearMonth = $now->format('Y-m');
+        $prevYearMonth = $now->copy()->subMonth()->format('Y-m');
         $daysInMonth = $now->daysInMonth();
         $currentDay = $now->day;
 
         $monthlyHistory = [];
+        $prevHistory = [];
         foreach ($this->history as $dateStr => $usages) {
             if (str_starts_with($dateStr, $currentYearMonth) && $dateStr < $todayStr) {
                 $monthlyHistory[$dateStr] = $usages;
+            } elseif (str_starts_with($dateStr, $prevYearMonth)) {
+                $prevHistory[$dateStr] = $usages;
             }
         }
         krsort($monthlyHistory);
+        krsort($prevHistory);
 
         $totalEstimated = 0.0;
         $details = [];
         foreach ($monthlyUsage as $user => $currentUsage) {
+            // Baseline Rate calculation (R_baseline)
+            $rPrev = null;
+            if (!empty($prevHistory)) {
+                $prevDateStr = (string)array_key_first($prevHistory);
+                $prevUsages = $prevHistory[$prevDateStr];
+                $prevUserUsage = null;
+                if (is_object($prevUsages) && isset($prevUsages->$user)) {
+                    $prevUserUsage = (float)$prevUsages->$user;
+                } elseif (is_array($prevUsages) && isset($prevUsages[$user])) {
+                    $prevUserUsage = (float)$prevUsages[$user];
+                }
+
+                if ($prevUserUsage !== null) {
+                    $prevRecordDay = (new Carbon($prevDateStr, timezone: Consts::TIMEZONE))->day;
+                    $rPrev = $prevUserUsage / $prevRecordDay;
+                }
+            }
+
+            $userPlanVolume = 0.0;
+            if (isset($this->iijmioConfig->users->$user)) {
+                $userInfo = $this->iijmioConfig->users->$user;
+                if (is_object($userInfo) && isset($userInfo->plan_data_volume)) {
+                    $userPlanVolume = (float)$userInfo->plan_data_volume;
+                } elseif (is_array($userInfo) && isset($userInfo['plan_data_volume'])) {
+                    $userPlanVolume = (float)$userInfo['plan_data_volume'];
+                }
+            }
+
+            if ($rPrev !== null) {
+                $rBaseline = $rPrev;
+                $baselineSource = 'previous_month';
+            } else {
+                $rBaseline = ($userPlanVolume > 0.0) ? ($userPlanVolume / $daysInMonth) : 0.0;
+                $baselineSource = 'plan';
+            }
+
+            // Current Month Cumulative Rate (R_cumulative)
+            $rCumulative = $currentDay > 0 ? ($currentUsage / $currentDay) : 0.0;
+
+            // Current Month Recent 7-Day Rate (R_recent)
             $bestDateStr = null;
             $bestUserPastUsage = null;
             $bestDayDiff = null;
@@ -361,45 +417,49 @@ EOT;
                 }
             }
 
-            $estimatedUserUsage = null;
-            $detail = [];
+            $hasRecent = false;
+            $rRecent = null;
             if ($bestDateStr !== null && $bestUserPastUsage !== null && $bestDayDiff !== null) {
                 $consumption = $currentUsage - $bestUserPastUsage;
-                $avgConsumptionPerDay = max(0.0, $consumption / $bestDayDiff);
-                $remainingDays = $daysInMonth - $currentDay;
-                $estimatedUserUsage = $currentUsage + ($avgConsumptionPerDay * $remainingDays);
-
-                $pastCarbon = new Carbon($bestDateStr, timezone: Consts::TIMEZONE);
-                $this->logger?->info("User {$user}: estimated using history of {$bestDateStr}. Past: {$bestUserPastUsage}GB, Current: {$currentUsage}GB, Diff days: {$bestDayDiff}, Avg/Day: {$avgConsumptionPerDay}GB. Estimate: {$estimatedUserUsage}GB");
-
-                $detail = [
-                    'type' => 'history',
-                    'pastDate' => $pastCarbon->format('m/d'),
-                    'pastUsage' => $bestUserPastUsage,
-                    'currentUsage' => $currentUsage,
-                    'dayDiff' => $bestDayDiff,
-                    'consumption' => round($consumption, 2),
-                    'avgConsumptionPerDay' => round($avgConsumptionPerDay, 4),
-                    'remainingDays' => $remainingDays,
-                    'estimatedUserUsage' => $estimatedUserUsage,
-                ];
+                $rRecent = max(0.0, $consumption / $bestDayDiff);
+                $hasRecent = true;
             }
 
-            if ($estimatedUserUsage === null) {
-                $estimatedUserUsage = ($currentUsage / $currentDay) * $daysInMonth;
-                $this->logger?->info("User {$user}: no history found. Estimate using simple proportion: {$estimatedUserUsage}GB");
-                $avgConsumptionPerDay = $currentUsage / $currentDay;
-                $remainingDays = $daysInMonth - $currentDay;
-
-                $detail = [
-                    'type' => 'simple',
-                    'currentDay' => $currentDay,
-                    'currentUsage' => $currentUsage,
-                    'avgConsumptionPerDay' => round($avgConsumptionPerDay, 4),
-                    'remainingDays' => $remainingDays,
-                    'estimatedUserUsage' => $estimatedUserUsage,
-                ];
+            // Blend Recent and Cumulative for Current Month Rate (R_current_blended)
+            if ($hasRecent && $rRecent !== null) {
+                $rCurrentBlended = 0.5 * $rRecent + 0.5 * $rCumulative;
+            } else {
+                $rCurrentBlended = $rCumulative;
             }
+
+            // Current Month Weight (W_current)
+            $wCurrent = min(1.0, ($currentDay - 1) / 7.0);
+
+            // Projected Rate (R_projected)
+            $rProjected = $wCurrent * $rCurrentBlended + (1.0 - $wCurrent) * $rBaseline;
+
+            // Estimated Usage
+            $remainingDays = $daysInMonth - $currentDay;
+            $estimatedUserUsage = $currentUsage + ($rProjected * $remainingDays);
+
+            $this->logger?->info("User {$user}: cumulative rate = {$rCumulative}GB/day, recent rate = " . ($rRecent !== null ? "{$rRecent}" : "N/A") . "GB/day, baseline rate = {$rBaseline}GB/day ({$baselineSource}), current weight = {$wCurrent}, projected rate = {$rProjected}GB/day. Estimated = {$estimatedUserUsage}GB");
+
+            $detail = [
+                'type' => 'blended',
+                'currentDay' => $currentDay,
+                'currentUsage' => $currentUsage,
+                'avgConsumptionPerDay' => round($rProjected, 4),
+                'remainingDays' => $remainingDays,
+                'estimatedUserUsage' => $estimatedUserUsage,
+                'rCumulative' => $rCumulative,
+                'rRecent' => $rRecent,
+                'rBaseline' => $rBaseline,
+                'wCurrent' => $wCurrent,
+                'hasRecent' => $hasRecent,
+                'dayDiff' => $bestDayDiff,
+                'pastDate' => $bestDateStr ? (new Carbon($bestDateStr, timezone: Consts::TIMEZONE))->format('m/d') : null,
+                'baselineSource' => $baselineSource,
+            ];
 
             $totalEstimated += $estimatedUserUsage;
             $details[$user] = $detail;
