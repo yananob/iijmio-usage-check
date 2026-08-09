@@ -60,6 +60,10 @@ final class IijmioUsage
                     ]
                 );
                 $this->__checkResponse($response);
+                $loginBody = json_decode((string)$response->getBody(), true);
+                if (!empty($loginBody['error'])) {
+                    throw new \Exception("Login failed with error: " . $loginBody['error']);
+                }
 
                 $this->logger?->info("Fetching top page data (coupon data)...");
                 $response = $client->post(
@@ -75,6 +79,9 @@ final class IijmioUsage
                 );
                 $this->__checkResponse($response);
                 $body = json_decode((string)$response->getBody(), true);
+                if (!empty($body['error'])) {
+                    throw new \Exception("Could not get couponData due to error: " . $body['error']);
+                }
                 if (empty($body["serviceInfoList"][0]["couponData"])) {
                     throw new \Exception("Could not get couponData: " . var_export($body, true));
                 }
