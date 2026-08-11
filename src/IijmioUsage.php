@@ -285,33 +285,19 @@ final class IijmioUsage
                 }
             }
 
+            $currentUsageStr = sprintf("%.1f", $detail['currentUsage']);
+            $dailyUsageStr = sprintf("%.1f", $dailyUsages[$user]);
             $estimatedUserUsageStr = sprintf("%.1f", $detail['estimatedUserUsage']);
-            $rProjectedStr = sprintf("%.2f", $detail['avgConsumptionPerDay']);
 
-            if ($detail['wCurrent'] < 1.0) {
-                // Beginning of the month (blended with baseline)
-                $rCurrentBlended = $detail['hasRecent']
-                    ? (0.5 * $detail['rRecent'] + 0.5 * $detail['rCumulative'])
-                    : $detail['rCumulative'];
-                $rCurrentBlendedStr = sprintf("%.2f", $rCurrentBlended);
-                $rBaselineStr = sprintf("%.2f", $detail['rBaseline']);
-                $wCurrentPct = (int)round($detail['wCurrent'] * 100);
-                $wBaselinePct = 100 - $wCurrentPct;
-
-                $detailList[] = "  {$userName}: 日平均 {$rProjectedStr}GB [内訳: 今月実績 {$rCurrentBlendedStr}GB×{$wCurrentPct}% + 前月/計画 {$rBaselineStr}GB×{$wBaselinePct}%] -> 月末予測: {$estimatedUserUsageStr}GB";
-            } else {
-                // Middle/end of the month (100% current month)
-                if ($detail['hasRecent']) {
-                    $dayDiff = $detail['dayDiff'];
-                    $rRecentStr = sprintf("%.2f", $detail['rRecent']);
-                    $rCumulativeStr = sprintf("%.2f", $detail['rCumulative']);
-                    $detailList[] = "  {$userName}: 日平均 {$rProjectedStr}GB [内訳: 直近{$dayDiff}日 {$rRecentStr}GB×50% + 月初来 {$rCumulativeStr}GB×50%] -> 月末予測: {$estimatedUserUsageStr}GB";
-                } else {
-                    $rCumulativeStr = sprintf("%.2f", $detail['rCumulative']);
-                    $detailList[] = "  {$userName}: 日平均 {$rProjectedStr}GB [内訳: 月初来 {$rCumulativeStr}GB(100%)] -> 月末予測: {$estimatedUserUsageStr}GB";
-                }
-            }
+            $detailList[] = "  {$userName}: {$currentUsageStr}GB (+{$dailyUsageStr}) → {$estimatedUserUsageStr}GB";
         }
+
+        $thisMonthTotalUsageStr = sprintf("%.1f", array_sum($monthlyUsages));
+        $dailyTotalUsageStr = sprintf("%.1f", array_sum($dailyUsages));
+        $estimateUsageStr = sprintf("%.1f", $estimateUsage);
+
+        $detailList[] = "  TOTAL: {$thisMonthTotalUsageStr}GB (+{$dailyTotalUsageStr}) → {$estimateUsageStr}GB";
+
         $detailStr = implode("\n", $detailList);
 
         $message = <<<EOT
