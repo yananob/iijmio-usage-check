@@ -6,7 +6,7 @@
     "require": {
         "php": ">= 8.2",
         "google/cloud-functions-framework": "^1.3",
-        "google/cloud-firestore": "^1.37",
+        "google/cloud-firestore": "^2.2",
         "nesbot/carbon": "^3.8",
         "linecorp/line-bot-sdk": "^12.4",
         "monolog/monolog": "^3.10",
