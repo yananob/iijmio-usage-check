@@ -262,12 +262,19 @@ final class IijmioUsage
             $thisMonthUsageList[] = "  {$userName}: {$monthlyUsage}GB  (+{$dailyUsage})";
         }
         $thisMonthUsageList = implode("\n", $thisMonthUsageList);
-        $thisMonthTotalUsage = sprintf("%.1f", array_sum($monthlyUsages));
+        $thisMonthTotalUsageVal = array_sum($monthlyUsages);
+        $thisMonthTotalUsage = sprintf("%.1f", $thisMonthTotalUsageVal);
         $dailyTotalUsage = sprintf("%.1f", array_sum($dailyUsages));
-        $thisMonthTotalUsageRate = $planDataVolume > 0 ? (int)round($thisMonthTotalUsage / $planDataVolume * 100, 0) : 0;
+        $thisMonthTotalUsageRate = $planDataVolume > 0 ? (int)round($thisMonthTotalUsageVal / $planDataVolume * 100, 0) : 0;
         $estimateUsageRate = $planDataVolume > 0 ? (int)round($estimateUsage / $planDataVolume * 100, 0) : 0;
         $planDataVolumeStr = sprintf("%.1f", $planDataVolume);
-        $totalRemainingDataVolume = sprintf("%.1f", $totalRemainingDataVolume);
+        $totalRemainingDataVolumeStr = sprintf("%.1f", $totalRemainingDataVolume);
+
+        $remainingConsumption = $estimateUsage - $thisMonthTotalUsageVal;
+        $remainingConsumptionStr = sprintf("%.1f", $remainingConsumption);
+
+        $shortageOrSurplus = $remainingConsumption - $totalRemainingDataVolume;
+        $shortageOrSurplusStr = sprintf("%.1f", $shortageOrSurplus);
 
         $remainingDays = $now->daysInMonth() - $now->day;
 
@@ -309,7 +316,9 @@ Usage:
 
 EoM: {$estimateUsage}GB  ({$estimateUsageRate}%)
 Plan: {$planDataVolumeStr}GB
-Left: {$totalRemainingDataVolume}GB
+Left: {$totalRemainingDataVolumeStr}GB
+残り消費予定: {$remainingConsumptionStr}GB
+過不足予定: {$shortageOrSurplusStr}GB
 
 [予測根拠] (残り{$remainingDays}日)
 {$detailStr}
