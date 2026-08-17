@@ -20,13 +20,13 @@ final class IijmioUsage
     public function getStats(): array
     {
         $this->logger?->info("Starting to crawl IIJmio usage data...");
-        [$remainingDataVolume, $monthlyUsages, $dailyUsages] = $this->__crawl();
+        [$remainingDataVolume, $monthlyUsages, $dailyUsages] = $this->crawl();
         $this->logger?->info("Successfully crawled data.");
-        [$isSend, $message] = $this->__judgeResult($remainingDataVolume, $monthlyUsages, $dailyUsages);
+        [$isSend, $message] = $this->judgeResult($remainingDataVolume, $monthlyUsages, $dailyUsages);
         return [$isSend, $message, $monthlyUsages];
     }
 
-    private function __crawl(): array
+    private function crawl(): array
     {
         for ($i = 0; $i < 5; $i++) {
             try {
@@ -41,17 +41,17 @@ final class IijmioUsage
                 $response = $client->get(
                     "/member/",
                     [
-                        "headers" => $this->__getHttpHeaders(null),
+                        "headers" => $this->getHttpHeaders(null),
                         "cookies" => $cookieJar,
                     ]
                 );
-                $this->__checkResponse($response);
+                $this->checkResponse($response);
 
                 $this->logger?->info("Logging in...");
                 $response = $client->post(
                     "/api/member/login",
                     [
-                        "headers" => $this->__getHttpHeaders("application/json"),
+                        "headers" => $this->getHttpHeaders("application/json"),
                         "cookies" => $cookieJar,
                         "json" => [
                             "mioId" => $this->iijmioConfig->mio_id,
@@ -59,7 +59,7 @@ final class IijmioUsage
                         ],
                     ]
                 );
-                $this->__checkResponse($response);
+                $this->checkResponse($response);
                 $loginBody = json_decode((string)$response->getBody(), true);
                 if (!empty($loginBody['error'])) {
                     throw new \Exception("Login failed with error: " . $loginBody['error']);
@@ -69,7 +69,7 @@ final class IijmioUsage
                 $response = $client->post(
                     "/api/member/top",
                     [
-                        "headers" => $this->__getHttpHeaders("application/json"),
+                        "headers" => $this->getHttpHeaders("application/json"),
                         "cookies" => $cookieJar,
                         "json" => [
                             "billingFlag" => true,
@@ -77,7 +77,7 @@ final class IijmioUsage
                         ],
                     ]
                 );
-                $this->__checkResponse($response);
+                $this->checkResponse($response);
                 $body = json_decode((string)$response->getBody(), true);
                 if (!empty($body['error'])) {
                     throw new \Exception("Could not get couponData due to error: " . $body['error']);
@@ -94,23 +94,23 @@ final class IijmioUsage
                 $response = $client->get(
                     "/service/setup/hdc/viewmonthlydata/",
                     [
-                        "headers" => $this->__getHttpHeaders(null),
+                        "headers" => $this->getHttpHeaders(null),
                         "cookies" => $cookieJar,
                     ]
                 );
-                $this->__checkResponse($response);
-                $monthlyUsage = $this->__parseMonthlyUsagePage((string)$response->getBody());
+                $this->checkResponse($response);
+                $monthlyUsage = $this->parseMonthlyUsagePage((string)$response->getBody());
 
                 $this->logger?->info("Fetching daily usage page...");
                 $response = $client->get(
                     "/service/setup/hdc/viewdailydata/",
                     [
-                        "headers" => $this->__getHttpHeaders(null),
+                        "headers" => $this->getHttpHeaders(null),
                         "cookies" => $cookieJar,
                     ]
                 );
-                $this->__checkResponse($response);
-                $dailyUsage = $this->__parseDailyUsagePage((string)$response->getBody());
+                $this->checkResponse($response);
+                $dailyUsage = $this->parseDailyUsagePage((string)$response->getBody());
 
                 return [$remainingDataVolume, $monthlyUsage, $dailyUsage];
             } catch (\Exception $e) {
@@ -125,9 +125,9 @@ final class IijmioUsage
         throw new \Exception("Retry limit exceeded.");
     }
 
-    private function __getHttpHeaders(?string $contentType): array
+    private function getHttpHeaders(?string $contentType): array
     {
-        $result =  [
+        $result = [
             // これを与えないと、HTMLが結構変わったり、検索時の書籍名がより短い（モバイル向け？）ものになる
             "User-Agent" => "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36",
         ];
@@ -139,18 +139,17 @@ final class IijmioUsage
         return $result;
     }
 
-    private function __checkResponse($response): void
+    private function checkResponse($response): void
     {
         if (!in_array($response->getStatusCode(), [200])) {
             throw new \Exception("Request error. [" . $response->getStatusCode() . "] " . $response->getReasonPhrase());
         }
     }
 
-    private function __parseMonthlyUsagePage(string $content): array
+    private function parseMonthlyUsagePage(string $content): array
     {
         // 不要部分カット
         $content = preg_replace('/<h1>データ利用量照会（月別）<\/h1>/m', "", $content);
-        // var_dump($content);
 
         $result = [];
         // ユーザーごとに分割
@@ -160,15 +159,12 @@ final class IijmioUsage
                 continue;
             }
 
-            // <input id="hdoCode" name="hdoCode" value="hdo12345678" type="hidden" value=""/>
             preg_match('/<input id="hdoCode" name="hdoCode" value="(hdo[0-9]+?)" type="hidden" value=""\/>/', $contentUser, $matches);
             if (!$matches || count($matches) < 2) {
                 throw new \Exception("Could not get hdoCode usage: " . $contentUser);
             }
             $hdoCode = $matches[1];
 
-            // <td class="viewdata-detail-cell2">
-            // 5.3GB </td>
             preg_match('/<td class="viewdata-detail-cell2">[\s]*?([0-9\.]+)GB[\s]*<\/td>/m', $contentUser, $matches);
             if (!$matches || count($matches) < 2) {
                 throw new \Exception("Could not get monthly usage: " . $contentUser);
@@ -181,11 +177,10 @@ final class IijmioUsage
         return $result;
     }
 
-    private function __parseDailyUsagePage(string $content): array
+    private function parseDailyUsagePage(string $content): array
     {
         // 不要部分カット
         $content = preg_replace('/<h1>データ利用量照会<\/h1>/m', "", $content);
-        // var_dump($content);
 
         $result = [];
         // ユーザーごとに分割
@@ -195,15 +190,12 @@ final class IijmioUsage
                 continue;
             }
 
-            // <input id="hdoCode" name="hdoCode" value="hdo12345678" type="hidden" value=""/>
             preg_match('/<input id="hdoCode" name="hdoCode" value="(hdo[0-9]+?)" type="hidden" value=""\/>/', $contentUser, $matches);
             if (!$matches || count($matches) < 2) {
                 throw new \Exception("Could not get hdoCode usage: " . $contentUser);
             }
             $hdoCode = $matches[1];
 
-            // <td class="viewdata-detail-cell2">
-            // 5.3GB </td>
             preg_match('/<td class="viewdata-detail-cell2">[\s]*?([0-9\.]+)MB[\s]*<\/td>/m', $contentUser, $matches);
             if (!$matches || count($matches) < 2) {
                 throw new \Exception("Could not get daily usage: " . $contentUser);
@@ -216,19 +208,46 @@ final class IijmioUsage
         return $result;
     }
 
-    private function __judgeResult(array $remainingDataVolume, array $monthlyUsages, array $dailyUsages): array
+    private function getUserName(string $user): string
+    {
+        if (isset($this->iijmioConfig->users->$user)) {
+            $userInfo = $this->iijmioConfig->users->$user;
+            if (is_object($userInfo) && isset($userInfo->name)) {
+                return (string)$userInfo->name;
+            }
+            if (is_array($userInfo) && isset($userInfo['name'])) {
+                return (string)$userInfo['name'];
+            }
+            if (is_string($userInfo)) {
+                return $userInfo;
+            }
+        }
+        return $user;
+    }
+
+    private function getUserPlanDataVolume(string $user): float
+    {
+        if (isset($this->iijmioConfig->users->$user)) {
+            $userInfo = $this->iijmioConfig->users->$user;
+            if (is_object($userInfo) && isset($userInfo->plan_data_volume)) {
+                return (float)$userInfo->plan_data_volume;
+            }
+            if (is_array($userInfo) && isset($userInfo['plan_data_volume'])) {
+                return (float)$userInfo['plan_data_volume'];
+            }
+        }
+        return 0.0;
+    }
+
+    private function judgeResult(array $remainingDataVolume, array $monthlyUsages, array $dailyUsages): array
     {
         $totalRemainingDataVolume = array_sum($remainingDataVolume);
-        [$estimateUsage, $estimateDetails] = $this->__estimateThisMonthUsage($monthlyUsages);
+        [$estimateUsage, $estimateDetails] = $this->estimateThisMonthUsage($monthlyUsages);
 
         $planDataVolume = 0.0;
         if (isset($this->iijmioConfig->users)) {
             foreach ($this->iijmioConfig->users as $user => $userInfo) {
-                if (is_object($userInfo) && isset($userInfo->plan_data_volume)) {
-                    $planDataVolume += (float)$userInfo->plan_data_volume;
-                } elseif (is_array($userInfo) && isset($userInfo['plan_data_volume'])) {
-                    $planDataVolume += (float)$userInfo['plan_data_volume'];
-                }
+                $planDataVolume += $this->getUserPlanDataVolume((string)$user);
             }
         }
 
@@ -246,20 +265,10 @@ final class IijmioUsage
 
         $thisMonthUsageList = [];
         foreach ($monthlyUsages as $user => $monthlyUsage) {
-            $monthlyUsage = sprintf("%.1f", $monthlyUsage);
-            $dailyUsage = sprintf("%.1f", $dailyUsages[$user]);
-            $userName = $user;
-            if (isset($this->iijmioConfig->users->$user)) {
-                $userInfo = $this->iijmioConfig->users->$user;
-                if (is_object($userInfo) && isset($userInfo->name)) {
-                    $userName = $userInfo->name;
-                } elseif (is_array($userInfo) && isset($userInfo['name'])) {
-                    $userName = $userInfo['name'];
-                } elseif (is_string($userInfo)) {
-                    $userName = $userInfo;
-                }
-            }
-            $thisMonthUsageList[] = "  {$userName}: {$monthlyUsage}GB  (+{$dailyUsage})";
+            $monthlyUsageStr = sprintf("%.1f", $monthlyUsage);
+            $dailyUsageStr = sprintf("%.1f", $dailyUsages[$user]);
+            $userName = $this->getUserName((string)$user);
+            $thisMonthUsageList[] = "  {$userName}: {$monthlyUsageStr}GB  (+{$dailyUsageStr})";
         }
         $thisMonthUsageList = implode("\n", $thisMonthUsageList);
         $thisMonthTotalUsageVal = array_sum($monthlyUsages);
@@ -280,17 +289,7 @@ final class IijmioUsage
 
         $detailList = [];
         foreach ($estimateDetails as $user => $detail) {
-            $userName = $user;
-            if (isset($this->iijmioConfig->users->$user)) {
-                $userInfo = $this->iijmioConfig->users->$user;
-                if (is_object($userInfo) && isset($userInfo->name)) {
-                    $userName = $userInfo->name;
-                } elseif (is_array($userInfo) && isset($userInfo['name'])) {
-                    $userName = $userInfo['name'];
-                } elseif (is_string($userInfo)) {
-                    $userName = $userInfo;
-                }
-            }
+            $userName = $this->getUserName((string)$user);
 
             $currentUsageStr = sprintf("%.1f", $detail['currentUsage']);
             $dailyUsageStr = sprintf("%.1f", $dailyUsages[$user]);
@@ -327,7 +326,7 @@ EOT;
         return [$isSend, $message];
     }
 
-    private function __estimateThisMonthUsage(array $monthlyUsage): array
+    private function estimateThisMonthUsage(array $monthlyUsage): array
     {
         $now = new Carbon(timezone: Consts::TIMEZONE);
         $todayStr = $now->format('Y-m-d');
@@ -351,16 +350,17 @@ EOT;
         $totalEstimated = 0.0;
         $details = [];
         foreach ($monthlyUsage as $user => $currentUsage) {
+            $userKey = (string)$user;
             // Baseline Rate calculation (R_baseline)
             $rPrev = null;
             if (!empty($prevHistory)) {
                 $prevDateStr = (string)array_key_first($prevHistory);
                 $prevUsages = $prevHistory[$prevDateStr];
                 $prevUserUsage = null;
-                if (is_object($prevUsages) && isset($prevUsages->$user)) {
-                    $prevUserUsage = (float)$prevUsages->$user;
-                } elseif (is_array($prevUsages) && isset($prevUsages[$user])) {
-                    $prevUserUsage = (float)$prevUsages[$user];
+                if (is_object($prevUsages) && isset($prevUsages->$userKey)) {
+                    $prevUserUsage = (float)$prevUsages->$userKey;
+                } elseif (is_array($prevUsages) && isset($prevUsages[$userKey])) {
+                    $prevUserUsage = (float)$prevUsages[$userKey];
                 }
 
                 if ($prevUserUsage !== null) {
@@ -369,15 +369,7 @@ EOT;
                 }
             }
 
-            $userPlanVolume = 0.0;
-            if (isset($this->iijmioConfig->users->$user)) {
-                $userInfo = $this->iijmioConfig->users->$user;
-                if (is_object($userInfo) && isset($userInfo->plan_data_volume)) {
-                    $userPlanVolume = (float)$userInfo->plan_data_volume;
-                } elseif (is_array($userInfo) && isset($userInfo['plan_data_volume'])) {
-                    $userPlanVolume = (float)$userInfo['plan_data_volume'];
-                }
-            }
+            $userPlanVolume = $this->getUserPlanDataVolume($userKey);
 
             if ($rPrev !== null) {
                 $rBaseline = $rPrev;
@@ -398,10 +390,10 @@ EOT;
 
             foreach ($monthlyHistory as $dateStr => $usages) {
                 $userPastUsage = null;
-                if (is_object($usages) && isset($usages->$user)) {
-                    $userPastUsage = (float)$usages->$user;
-                } elseif (is_array($usages) && isset($usages[$user])) {
-                    $userPastUsage = (float)$usages[$user];
+                if (is_object($usages) && isset($usages->$userKey)) {
+                    $userPastUsage = (float)$usages->$userKey;
+                } elseif (is_array($usages) && isset($usages[$userKey])) {
+                    $userPastUsage = (float)$usages[$userKey];
                 }
 
                 if ($userPastUsage !== null) {
@@ -444,7 +436,7 @@ EOT;
             $remainingDays = $daysInMonth - $currentDay;
             $estimatedUserUsage = $currentUsage + ($rProjected * $remainingDays);
 
-            $this->logger?->info("User {$user}: cumulative rate = {$rCumulative}GB/day, recent rate = " . ($rRecent !== null ? "{$rRecent}" : "N/A") . "GB/day, baseline rate = {$rBaseline}GB/day ({$baselineSource}), current weight = {$wCurrent}, projected rate = {$rProjected}GB/day. Estimated = {$estimatedUserUsage}GB");
+            $this->logger?->info("User {$userKey}: cumulative rate = {$rCumulative}GB/day, recent rate = " . ($rRecent !== null ? "{$rRecent}" : "N/A") . "GB/day, baseline rate = {$rBaseline}GB/day ({$baselineSource}), current weight = {$wCurrent}, projected rate = {$rProjected}GB/day. Estimated = {$estimatedUserUsage}GB");
 
             $detail = [
                 'type' => 'blended',
@@ -464,10 +456,9 @@ EOT;
             ];
 
             $totalEstimated += $estimatedUserUsage;
-            $details[$user] = $detail;
+            $details[$userKey] = $detail;
         }
 
         return [round($totalEstimated, 1), $details];
     }
-
 }

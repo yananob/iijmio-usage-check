@@ -26,7 +26,7 @@ final class IijmioUsageTest extends TestCase
         $content = file_get_contents(__DIR__ . "/data/monthly_usage.html");
         $this->assertNotFalse($content);
         $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
-        $result = Test::invokePrivateMethod($iijmio, "__parseMonthlyUsagePage", $content);
+        $result = Test::invokePrivateMethod($iijmio, "parseMonthlyUsagePage", $content);
 
         $this->assertNotEmpty($result);
         $this->assertArrayHasKey("hdo12345678", $result);
@@ -39,7 +39,7 @@ final class IijmioUsageTest extends TestCase
         $content = file_get_contents(__DIR__ . "/data/daily_usage.html");
         $this->assertNotFalse($content);
         $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
-        $result = Test::invokePrivateMethod($iijmio, "__parseDailyUsagePage", $content);
+        $result = Test::invokePrivateMethod($iijmio, "parseDailyUsagePage", $content);
 
         $this->assertNotEmpty($result);
         $this->assertArrayHasKey("hdo12345678", $result);
@@ -55,7 +55,7 @@ final class IijmioUsageTest extends TestCase
         Carbon::setTestNow(new Carbon('2024-11-11 12:00:00', timezone: Consts::TIMEZONE));
         [$isSendAlert, $message] = Test::invokePrivateMethod(
             $iijmio,
-            "__judgeResult",
+            "judgeResult",
             ["202411" => 0.5, "202412" => 6.0],
             ["hdo12345678" => 0.9, "hdo22345678" => 1.0],
             ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
@@ -87,7 +87,7 @@ EOT;
         Carbon::setTestNow(new Carbon('2024-11-20 12:00:00', timezone: Consts::TIMEZONE));
         [$isSendAlert, $message] = Test::invokePrivateMethod(
             $iijmio,
-            "__judgeResult",
+            "judgeResult",
             ["202411" => 1.5, "202412" => 5.0],
             ["hdo12345678" => 0.9, "hdo22345678" => 1.0],
             ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
@@ -100,7 +100,7 @@ EOT;
         Carbon::setTestNow(new Carbon('2024-11-09 12:00:00', timezone: Consts::TIMEZONE));
         [$isSendAlert, $message] = Test::invokePrivateMethod(
             $iijmio,
-            "__judgeResult",
+            "judgeResult",
             ["202411" => 0.5, "202412" => 6.0],
             ["hdo12345678" => 0.9, "hdo22345678" => 1.0],
             ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
@@ -136,7 +136,7 @@ EOT;
         $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
         [$result, $details] = Test::invokePrivateMethod(
             $iijmio,
-            "__estimateThisMonthUsage",
+            "estimateThisMonthUsage",
             ["hdo12345678" => 1.1, "hdo22345678" => 2.2]
         );
 
@@ -171,7 +171,7 @@ EOT;
 
         [$result, $details] = Test::invokePrivateMethod(
             $iijmio,
-            "__estimateThisMonthUsage",
+            "estimateThisMonthUsage",
             ["hdo12345678" => 1.1, "hdo22345678" => 2.2]
         );
 
@@ -200,7 +200,7 @@ EOT;
 
         [$result, $details] = Test::invokePrivateMethod(
             $iijmio,
-            "__estimateThisMonthUsage",
+            "estimateThisMonthUsage",
             ["hdo12345678" => 1.1, "hdo22345678" => 2.2]
         );
 
@@ -235,7 +235,7 @@ EOT;
 
         [$result, $details] = Test::invokePrivateMethod(
             $iijmio,
-            "__estimateThisMonthUsage",
+            "estimateThisMonthUsage",
             ["hdo12345678" => 1.5, "hdo22345678" => 2.0]
         );
 
@@ -264,7 +264,7 @@ EOT;
 
         [$result, $details] = Test::invokePrivateMethod(
             $iijmio,
-            "__estimateThisMonthUsage",
+            "estimateThisMonthUsage",
             ["hdo12345678" => 1.5, "hdo22345678" => 2.0]
         );
 
@@ -292,26 +292,10 @@ EOT;
 
         [$result, $details] = Test::invokePrivateMethod(
             $iijmio,
-            "__estimateThisMonthUsage",
+            "estimateThisMonthUsage",
             ["hdo12345678" => 0.8, "hdo22345678" => 1.6]
         );
 
-        // hdo12345678 の期待値計算:
-        // T = 4, wCurrent = (4-1)/7 = 3/7 = 0.4285714
-        // rCumulative = 0.8 / 4 = 0.2
-        // rBaseline (前月実績) = 3.1 / 31 = 0.1
-        // rCurrentBlended = rCumulative = 0.2
-        // rProjected = 0.4285714 * 0.2 + (1 - 0.4285714) * 0.1 = 0.142857
-        // estimated = 0.8 + 0.142857 * 26 = 4.514
-
-        // hdo22345678 の期待値計算:
-        // rCumulative = 1.6 / 4 = 0.4
-        // rBaseline (前月実績) = 6.2 / 31 = 0.2
-        // rCurrentBlended = rCumulative = 0.4
-        // rProjected = 0.4285714 * 0.4 + (1 - 0.4285714) * 0.2 = 0.285714
-        // estimated = 1.6 + 0.285714 * 26 = 9.028
-
-        // Total = 4.514 + 9.028 = 13.542 => round(13.5, 1) = 13.5
         $this->assertSame(13.5, $result);
         $this->assertSame(0.1429, $details['hdo12345678']['avgConsumptionPerDay']);
         $this->assertSame(0.2857, $details['hdo22345678']['avgConsumptionPerDay']);
