@@ -117,7 +117,7 @@ jobs:
       GCP_PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
 
   comment:
-    needs: [deploy]
+    needs: [deploy, prepare-deploy]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     env:
