@@ -3,134 +3,45 @@
 namespace App\Controllers;
 
 use App\AppConfig;
-use App\Firestore;
-use App\IijmioUsage;
-use App\Utils\Logger;
+use App\Services\ConfigServiceInterface;
+use App\Services\FirestoreConfigService;
+use App\Services\MockConfigService;
 use eftec\bladeone\BladeOne;
 use Psr\Http\Message\ServerRequestInterface;
 
 final class ConfigController
 {
+    private ?ConfigServiceInterface $service;
+
+    public function __construct(?ConfigServiceInterface $service = null)
+    {
+        $this->service = $service;
+    }
+
     public function handle(ServerRequestInterface $request): string
     {
         $isMock = ($request->getQueryParams()['mock'] ?? false) || (getenv('MOCK_FIRESTORE') === '1');
         $collectionName = AppConfig::getCollectionName();
+
+        $service = $this->service ?? ($isMock
+            ? new MockConfigService()
+            : new FirestoreConfigService($collectionName));
+
         $message = null;
         $previewMessage = null;
 
-        if ($isMock) {
-            $configData = [
-                'iijmio' => [
-                    'mio_id' => 'MA1234567',
-                    'password' => 'supersecret',
-                    'users' => [
-                        'hdo11111111' => [
-                            'name' => 'Alice',
-                            'plan_data_volume' => 5.0
-                        ],
-                        'hdo22222222' => [
-                            'name' => 'Bob',
-                            'plan_data_volume' => 10.0
-                        ]
-                    ]
-                ],
-                'alert' => [
-                    'bot' => 'MyLineBot',
-                    'target' => 'MyGroup',
-                    'send_usage_each_n_days' => 3
-                ]
-            ];
+        if ($request->getMethod() === 'POST') {
+            $params = (array)$request->getParsedBody();
+            $configData = $service->parseConfigFromParams($params);
+            $action = $params['action'] ?? 'save';
 
-            if ($request->getMethod() === 'POST') {
-                $params = (array)$request->getParsedBody();
-                $users = [];
-                if (isset($params['iijmio']['users']) && is_array($params['iijmio']['users'])) {
-                    foreach ($params['iijmio']['users'] as $user) {
-                        if (!empty($user['code']) && !empty($user['name'])) {
-                            $users[$user['code']] = [
-                                'name' => $user['name'],
-                                'plan_data_volume' => (float)($user['plan_data_volume'] ?? 0),
-                            ];
-                        }
-                    }
-                }
-                $configData = [
-                    'iijmio' => [
-                        'mio_id' => $params['iijmio']['mio_id'] ?? '',
-                        'password' => $params['iijmio']['password'] ?? '',
-                        'users' => $users,
-                    ],
-                    'alert' => [
-                        'bot' => $params['alert']['bot'] ?? '',
-                        'target' => $params['alert']['target'] ?? '',
-                        'send_usage_each_n_days' => (int)($params['alert']['send_usage_each_n_days'] ?? 0),
-                    ],
-                ];
-
-                $action = $params['action'] ?? 'save';
-                if ($action === 'save') {
-                    $message = "Config updated successfully. (Mock Save)";
-                } elseif ($action === 'preview') {
-                    $previewMessage = "[IIJmioデータ利用状況]\n- Alice (hdo11111111): 1.2 GB / 5.0 GB\n- Bob (hdo22222222): 4.5 GB / 10.0 GB\n\n[予測根拠]\nAlice: 直近3日間の平均から算出。\nBob: 直近3日間の平均から算出。";
-                }
+            if ($action === 'save') {
+                $message = $service->saveConfig($configData);
+            } elseif ($action === 'preview') {
+                $previewMessage = $service->generatePreview($configData);
             }
         } else {
-            $firestore = Firestore::getClient();
-            $docRef = $firestore->collection($collectionName)->document('config');
-            if ($request->getMethod() === 'POST') {
-                $params = (array)$request->getParsedBody();
-
-                $users = [];
-                if (isset($params['iijmio']['users']) && is_array($params['iijmio']['users'])) {
-                    foreach ($params['iijmio']['users'] as $user) {
-                        if (!empty($user['code']) && !empty($user['name'])) {
-                            $users[$user['code']] = [
-                                'name' => $user['name'],
-                                'plan_data_volume' => (float)($user['plan_data_volume'] ?? 0),
-                            ];
-                        }
-                    }
-                }
-
-                $configData = [
-                    'iijmio' => [
-                        'mio_id' => $params['iijmio']['mio_id'] ?? '',
-                        'password' => $params['iijmio']['password'] ?? '',
-                        'users' => $users,
-                    ],
-                    'alert' => [
-                        'bot' => $params['alert']['bot'] ?? '',
-                        'target' => $params['alert']['target'] ?? '',
-                        'send_usage_each_n_days' => (int)($params['alert']['send_usage_each_n_days'] ?? 0),
-                    ],
-                ];
-
-                $action = $params['action'] ?? 'save';
-                if ($action === 'save') {
-                    $docRef->set($configData);
-                    $message = "Config updated successfully.";
-                } elseif ($action === 'preview') {
-                    $configObj = (object)json_decode((string)json_encode($configData));
-                    $logger = new Logger("preview");
-                    $historyDoc = $firestore->collection($collectionName)->document('history')->snapshot();
-                    $history = $historyDoc->exists() ? (array)$historyDoc->data() : [];
-
-                    $iijmio = new IijmioUsage(
-                        $configObj->iijmio,
-                        $configObj->alert->send_usage_each_n_days,
-                        $logger,
-                        $history
-                    );
-                    try {
-                        [, $previewMessage] = $iijmio->getStats();
-                    } catch (\Exception $e) {
-                        $previewMessage = "Error: " . $e->getMessage();
-                    }
-                }
-            } else {
-                $doc = $docRef->snapshot();
-                $configData = $doc->exists() ? (array)$doc->data() : [];
-            }
+            $configData = $service->getConfig();
         }
 
         $views = dirname(__DIR__, 2) . '/views';
@@ -142,7 +53,7 @@ final class ConfigController
 
         return $blade->run("config", [
             "message" => $message,
-            "previewMessage" => $previewMessage ?? null,
+            "previewMessage" => $previewMessage,
             "collectionName" => $collectionName,
             "config" => $configData,
             "appEnv" => getenv('APP_ENV') ?: 'unknown',
