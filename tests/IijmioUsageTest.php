@@ -74,7 +74,7 @@ EoM: 5.2GB  (87%)
 Plan: 6.0GB
 Left: 6.5GB
 残り消費予定: 3.3GB
-過不足予定: -3.2GB
+過不足予定: 3.2GB
 
 [予測根拠] (残り19日)
   user1: 0.9GB (+0.1) → 2.5GB
@@ -93,7 +93,7 @@ EOT;
             ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
         );
         $this->assertTrue($isSendAlert);
-        $this->assertStringContainsString("残り消費予定: 1.0GB\n過不足予定: -5.5GB", $message);
+        $this->assertStringContainsString("残り消費予定: 1.0GB\n過不足予定: 5.5GB", $message);
         $this->assertStringContainsString("[予測根拠] (残り10日)\n  user1: 0.9GB (+0.1) → 1.4GB\n  user2: 1.0GB (+0.2) → 1.5GB\n  TOTAL: 1.9GB (+0.3) → 2.9GB", $message);
 
         // アラートあり（使用量同じだが、日付がまだ月初に近い）
@@ -119,7 +119,7 @@ EoM: 6.3GB  (105%)
 Plan: 6.0GB
 Left: 6.5GB
 残り消費予定: 4.4GB
-過不足予定: -2.1GB
+過不足予定: 2.1GB
 
 [予測根拠] (残り21日)
   user1: 0.9GB (+0.1) → 3.0GB
