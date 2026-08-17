@@ -1,0 +1,15 @@
+{
+    "iijmio": {
+        "mio_id": "MA1234567",
+        "password": "password",
+        "users": {
+            "hdo12345601": "user1",
+            "hdo12345602": "user2"
+        },
+        "plan_data_volume": 10
+    },
+    "alert": {
+        "target": "XXXX_LINE_target",
+        "send_usage_each_n_days": 10
+    }
+}
