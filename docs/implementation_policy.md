@@ -29,10 +29,28 @@
 | `FIREBASE_SERVICE_ACCOUNT` | Firestore 操作用のサービスアカウントキー（JSON形式）。 | サーバーサイドでの認証に使用 |
 | `OPENAI_KEY_XXXX` | OpenAI API のシークレットキー。 | `XXXX` はアプリごとに変える |
 | `K_SERVICE` | Cloud Functions のサービス名。 | URLの組み立てなどに使用 |
+| `LINE_TOKENS_N_TARGETS` | LINE 送信用トークンと送信先IDのマッピング（JSON形式）。 | 複数環境/複数Botのルーティング管理用 |
 
 ### 環境変数の取得方法
 
 原則として直接 `getenv()` を呼び出すのではなく、`src/AppConfig.php` 等を介して取得します。これにより、デフォルト値の設定や環境ごとのロジック変更を抽象化します。
+
+### LINE 送信設定 (`LINE_TOKENS_N_TARGETS`) の詳細
+
+`LINE_TOKENS_N_TARGETS` 環境変数には、以下のように `tokens`（チャネルアクセストークン）と `target_ids`（送信先ID）をそれぞれマップにしたJSON文字列が定義されています。
+
+```json
+{
+  "tokens": {
+    "oml": "LINE_CHANNEL_ACCESS_TOKEN_FOR_OML_BOT",
+    "nobu": "LINE_CHANNEL_ACCESS_TOKEN_FOR_NOBU_BOT"
+  },
+  "target_ids": {
+    "oml": "LINE_TARGET_GROUP_OR_USER_ID_FOR_OML",
+    "nobu": "LINE_TARGET_GROUP_OR_USER_ID_FOR_NOBU"
+  }
+}
+```
 
 ---
 
@@ -59,6 +77,7 @@ $firestore = new FirestoreClient([
 - **命名規則**:
   - PHP/JavaScript の変数・メソッド名は `camelCase`。
   - クラス名は `PascalCase`。
+- **CSS**: Tailwind CSS をデフォルトとして使用してください。
 - **環境の識別**:
   - テスト環境では、本番環境と区別しやすくするため、画面上部に現在のベースパスとリクエストパスをオーバーレイで表示します。
 - **デプロイとシークレット**:
@@ -67,7 +86,14 @@ $firestore = new FirestoreClient([
 
 ---
 
-## 5. テストコードの方針
+## 5. UI/UX
+
+- ユーザーの操作に対して、適切なフィードバックをし、システムが反応していることをユーザーに知らせます。
+  - 例えばボタンが押されたことに反応した動きを見せたり、処理に時間がかかる場合は処理中の表示をしたりする。
+
+---
+
+## 6. テストコードの方針
 
 テストコードを記載する際は、以下の指針に従ってください。
 
