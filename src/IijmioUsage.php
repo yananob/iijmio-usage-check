@@ -273,7 +273,7 @@ final class IijmioUsage
         $remainingConsumption = $estimateUsage - $thisMonthTotalUsageVal;
         $remainingConsumptionStr = sprintf("%.1f", $remainingConsumption);
 
-        $shortageOrSurplus = $remainingConsumption - $totalRemainingDataVolume;
+        $shortageOrSurplus = $totalRemainingDataVolume - $remainingConsumption;
         $shortageOrSurplusStr = sprintf("%.1f", $shortageOrSurplus);
 
         $remainingDays = $now->daysInMonth() - $now->day;
