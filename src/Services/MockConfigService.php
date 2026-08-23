@@ -25,7 +25,8 @@ final class MockConfigService implements ConfigServiceInterface
         'alert' => [
             'bot' => 'MyLineBot',
             'target' => 'MyGroup',
-            'send_usage_each_n_days' => 3
+            'send_usage_each_n_days' => 3,
+            'web_url' => 'https://example.com'
         ]
     ];
 
@@ -68,6 +69,7 @@ final class MockConfigService implements ConfigServiceInterface
                 'bot' => (string)($alert['bot'] ?? ''),
                 'target' => (string)($alert['target'] ?? ''),
                 'send_usage_each_n_days' => (int)($alert['send_usage_each_n_days'] ?? 0),
+                'web_url' => (string)($alert['web_url'] ?? ''),
             ],
         ];
     }
@@ -114,9 +116,11 @@ Left: 8.4GB
 過不足予定: 2.2GB
 
 [予測根拠] (残り{$remainingDays}日)
-  Alice: 2.1GB (+0.2) → 4.2GB
-  Bob: 4.5GB (+0.4) → 8.6GB
-  TOTAL: 6.6GB (+0.6) → 12.8GB
+  Alice: 0.1/日 1.0/週 → 4.2GB
+  Bob: 0.3/日 2.1/週 → 8.6GB
+  TOTAL: 0.4/日 3.1/週 → 12.8GB
+
+Web: https://example.com
 EOT;
 
         return [

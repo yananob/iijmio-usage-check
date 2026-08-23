@@ -16,6 +16,7 @@
     "alert": {
         "bot": "v_bot",
         "target": "v_target",
-        "send_usage_each_n_days": 10
+        "send_usage_each_n_days": 10,
+        "web_url": "https://example.com"
     }
 }

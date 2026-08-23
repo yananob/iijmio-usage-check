@@ -13,7 +13,8 @@ final class IijmioUsage
         private object $iijmioConfig,
         private int $sendEachNDays = 10,
         private ?Logger $logger = null,
-        private array $history = []
+        private array $history = [],
+        private ?string $webUrl = null
     ) {
     }
 
@@ -328,23 +329,28 @@ final class IijmioUsage
         $remainingDays = $now->daysInMonth() - $now->day;
 
         $detailList = [];
+        $totalDailyRateVal = 0.0;
         foreach ($estimateDetails as $user => $detail) {
             $userName = $this->getUserName((string)$user);
+            $dailyRateVal = (float)($detail['avgConsumptionPerDay'] ?? 0.0);
+            $totalDailyRateVal += $dailyRateVal;
 
-            $currentUsageStr = sprintf("%.1f", $detail['currentUsage']);
-            $dailyUsageStr = sprintf("%.1f", $dailyUsages[(string)$user] ?? 0.0);
+            $dailyRateStr = sprintf("%.1f", $dailyRateVal);
+            $weeklyRateStr = sprintf("%.1f", $dailyRateVal * 7);
             $estimatedUserUsageStr = sprintf("%.1f", $detail['estimatedUserUsage']);
 
-            $detailList[] = "  {$userName}: {$currentUsageStr}GB (+{$dailyUsageStr}) → {$estimatedUserUsageStr}GB";
+            $detailList[] = "  {$userName}: {$dailyRateStr}/日 {$weeklyRateStr}/週 → {$estimatedUserUsageStr}GB";
         }
 
-        $thisMonthTotalUsageStr = sprintf("%.1f", array_sum($monthlyUsages));
-        $dailyTotalUsageStr = sprintf("%.1f", array_sum($dailyUsages));
+        $totalDailyRateStr = sprintf("%.1f", $totalDailyRateVal);
+        $totalWeeklyRateStr = sprintf("%.1f", $totalDailyRateVal * 7);
         $estimateUsageStr = sprintf("%.1f", $estimateUsage);
 
-        $detailList[] = "  TOTAL: {$thisMonthTotalUsageStr}GB (+{$dailyTotalUsageStr}) → {$estimateUsageStr}GB";
+        $detailList[] = "  TOTAL: {$totalDailyRateStr}/日 {$totalWeeklyRateStr}/週 → {$estimateUsageStr}GB";
 
         $detailStr = implode("\n", $detailList);
+
+        $webStr = !empty($this->webUrl) ? "\n\nWeb: " . trim($this->webUrl) : "";
 
         $message = <<<EOT
 {$subject}
@@ -360,7 +366,7 @@ Left: {$totalRemainingDataVolumeStr}GB
 過不足予定: {$shortageOrSurplusStr}GB
 
 [予測根拠] (残り{$remainingDays}日)
-{$detailStr}
+{$detailStr}{$webStr}
 EOT;
 
         return [

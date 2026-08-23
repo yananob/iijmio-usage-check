@@ -49,7 +49,7 @@ final class IijmioUsageTest extends TestCase
 
     public function testJudgeResult(): void
     {
-        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio, sendEachNDays: 5);
+        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio, sendEachNDays: 5, webUrl: $this->config->alert->web_url ?? null);
 
         // アラートなし（メール送信なし）
         Carbon::setTestNow(new Carbon('2024-11-11 12:00:00', timezone: Consts::TIMEZONE));
@@ -77,9 +77,11 @@ Left: 6.5GB
 過不足予定: 3.2GB
 
 [予測根拠] (残り19日)
-  user1: 0.9GB (+0.1) → 2.5GB
-  user2: 1.0GB (+0.2) → 2.7GB
-  TOTAL: 1.9GB (+0.3) → 5.2GB
+  user1: 0.1/日 0.6/週 → 2.5GB
+  user2: 0.1/日 0.6/週 → 2.7GB
+  TOTAL: 0.2/日 1.2/週 → 5.2GB
+
+Web: https://example.com
 EOT;
         $this->assertEquals($expectedMessage, $message);
 
@@ -94,7 +96,7 @@ EOT;
         );
         $this->assertTrue($isSendAlert);
         $this->assertStringContainsString("残り消費予定: 1.0GB\n過不足予定: 5.5GB", $message);
-        $this->assertStringContainsString("[予測根拠] (残り10日)\n  user1: 0.9GB (+0.1) → 1.4GB\n  user2: 1.0GB (+0.2) → 1.5GB\n  TOTAL: 1.9GB (+0.3) → 2.9GB", $message);
+        $this->assertStringContainsString("[予測根拠] (残り10日)\n  user1: 0.0/日 0.3/週 → 1.4GB\n  user2: 0.1/日 0.4/週 → 1.5GB\n  TOTAL: 0.1/日 0.7/週 → 2.9GB\n\nWeb: https://example.com", $message);
 
         // アラートあり（使用量同じだが、日付がまだ月初に近い）
         Carbon::setTestNow(new Carbon('2024-11-09 12:00:00', timezone: Consts::TIMEZONE));
@@ -122,9 +124,11 @@ Left: 6.5GB
 過不足予定: 2.1GB
 
 [予測根拠] (残り21日)
-  user1: 0.9GB (+0.1) → 3.0GB
-  user2: 1.0GB (+0.2) → 3.3GB
-  TOTAL: 1.9GB (+0.3) → 6.3GB
+  user1: 0.1/日 0.7/週 → 3.0GB
+  user2: 0.1/日 0.8/週 → 3.3GB
+  TOTAL: 0.2/日 1.5/週 → 6.3GB
+
+Web: https://example.com
 EOT;
         $this->assertEquals($expectedMessage, $message);
     }

@@ -169,7 +169,8 @@ final class ConfigControllerTest extends TestCase
             'alert' => [
                 'bot' => 'Bot1',
                 'target' => 'Target1',
-                'send_usage_each_n_days' => 5
+                'send_usage_each_n_days' => 5,
+                'web_url' => ''
             ]
         ];
 
