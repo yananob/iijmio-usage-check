@@ -56,6 +56,7 @@ final class FirestoreConfigService implements ConfigServiceInterface
                 'bot' => (string)($alert['bot'] ?? ''),
                 'target' => (string)($alert['target'] ?? ''),
                 'send_usage_each_n_days' => (int)($alert['send_usage_each_n_days'] ?? 0),
+                'web_url' => (string)($alert['web_url'] ?? ''),
             ],
         ];
     }
@@ -88,7 +89,8 @@ final class FirestoreConfigService implements ConfigServiceInterface
             $configObj->iijmio,
             $configObj->alert->send_usage_each_n_days,
             $logger,
-            $history
+            $history,
+            $configObj->alert->web_url ?? null
         );
 
         try {
@@ -119,7 +121,8 @@ final class FirestoreConfigService implements ConfigServiceInterface
             $configObj->iijmio,
             (int)($configObj->alert->send_usage_each_n_days ?? 10),
             $logger,
-            $history
+            $history,
+            $configObj->alert->web_url ?? null
         );
 
         try {

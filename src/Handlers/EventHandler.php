@@ -38,7 +38,8 @@ final class EventHandler
             $config->iijmio,
             $config->alert->send_usage_each_n_days,
             $logger,
-            $history
+            $history,
+            $config->alert->web_url ?? null
         );
         [$isSendAlert, $message, $monthlyUsages] = $iijmio->getStats();
 
