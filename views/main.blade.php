@@ -75,6 +75,12 @@
                                 </svg>
                                 <h2 class="text-base font-extrabold text-slate-800">全体使用量 ＆ 月末着地点予測</h2>
                             </div>
+                            <button id="refresh-btn" type="button" onclick="fetchData(true)" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg id="refresh-icon" class="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                                <span id="refresh-label">更新（クローリング）</span>
+                            </button>
                         </div>
 
                         <div class="relative h-64 sm:h-72 flex justify-center items-center">
@@ -119,9 +125,30 @@
     </div>
 
     <script>
+        let landingChartInstance = null;
+
         document.addEventListener('DOMContentLoaded', function() {
+            fetchData(false);
+        });
+
+        function fetchData(isRefresh) {
+            const refreshBtn = document.getElementById('refresh-btn');
+            const refreshIcon = document.getElementById('refresh-icon');
+            const refreshLabel = document.getElementById('refresh-label');
+
+            if (isRefresh) {
+                if (refreshBtn) refreshBtn.disabled = true;
+                if (refreshIcon) refreshIcon.classList.add('animate-spin');
+                if (refreshLabel) refreshLabel.textContent = '更新中...';
+            }
+
             const currentParams = new URLSearchParams(window.location.search);
             currentParams.set('action', 'api_usage');
+            if (isRefresh) {
+                currentParams.set('refresh', '1');
+            } else {
+                currentParams.delete('refresh');
+            }
             const apiUrl = '?' + currentParams.toString();
 
             fetch(apiUrl)
@@ -141,8 +168,15 @@
                     document.getElementById('loading-skeleton').classList.add('hidden');
                     document.getElementById('error-container').classList.remove('hidden');
                     document.getElementById('error-message').textContent = err.message || 'データ取得エラー';
+                })
+                .finally(() => {
+                    if (isRefresh) {
+                        if (refreshBtn) refreshBtn.disabled = false;
+                        if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+                        if (refreshLabel) refreshLabel.textContent = '更新（クローリング）';
+                    }
                 });
-        });
+        }
 
         function renderDashboard(data) {
             document.getElementById('loading-skeleton').classList.add('hidden');
@@ -183,8 +217,11 @@
             document.getElementById('line-report-text').textContent = data.message || '';
 
             // Render Landing Prediction Chart
+            if (landingChartInstance) {
+                landingChartInstance.destroy();
+            }
             const ctx = document.getElementById('landingChart').getContext('2d');
-            new Chart(ctx, {
+            landingChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: ['契約容量', '今月の使用予定', '過不足予定'],

@@ -28,9 +28,10 @@ interface ConfigServiceInterface
     public function generatePreview(array $configData): string;
 
     /**
+     * @param bool $refresh
      * @return array<string, mixed>
      */
-    public function getUsageSummary(): array;
+    public function getUsageSummary(bool $refresh = false): array;
 
     /**
      * @return array<string, mixed>

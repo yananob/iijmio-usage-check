@@ -305,4 +305,31 @@ EOT;
         $this->assertSame(0.2857, $details['hdo22345678']['avgConsumptionPerDay']);
         $this->assertSame('previous_month', $details['hdo12345678']['baselineSource']);
     }
+
+    public function testGetDetailedStatsFromHistory(): void
+    {
+        Carbon::setTestNow(new Carbon('2024-11-15 12:00:00', timezone: Consts::TIMEZONE));
+
+        $history = [
+            "2024-11-14" => [
+                "hdo12345678" => 1.0,
+                "hdo22345678" => 2.0,
+            ],
+            "2024-11-15" => [
+                "hdo12345678" => 1.2,
+                "hdo22345678" => 2.5,
+            ]
+        ];
+
+        $iijmio = new IijmioUsage(
+            iijmioConfig: $this->config->iijmio,
+            history: $history
+        );
+
+        $summary = $iijmio->getDetailedStatsFromHistory();
+
+        $this->assertSame(3.7, $summary['thisMonthTotalUsage']);
+        $this->assertSame(0.7, $summary['dailyTotalUsage']);
+        $this->assertCount(2, $summary['users']);
+    }
 }
