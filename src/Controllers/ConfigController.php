@@ -37,7 +37,8 @@ final class ConfigController
             if (!headers_sent()) {
                 header('Content-Type: application/json');
             }
-            return json_encode($service->getUsageSummary(), JSON_UNESCAPED_UNICODE) ?: '{}';
+            $refresh = ($queryParams['refresh'] ?? null) === '1';
+            return json_encode($service->getUsageSummary($refresh), JSON_UNESCAPED_UNICODE) ?: '{}';
         }
 
         // API Endpoint: History Data

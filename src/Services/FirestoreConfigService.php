@@ -102,9 +102,10 @@ final class FirestoreConfigService implements ConfigServiceInterface
     }
 
     /**
+     * @param bool $refresh
      * @return array<string, mixed>
      */
-    public function getUsageSummary(): array
+    public function getUsageSummary(bool $refresh = false): array
     {
         $configData = $this->getConfig();
         if (empty($configData)) {
@@ -126,7 +127,17 @@ final class FirestoreConfigService implements ConfigServiceInterface
         );
 
         try {
-            return $iijmio->getDetailedStats();
+            if ($refresh) {
+                $summary = $iijmio->getDetailedStats();
+                if (!empty($summary['monthlyUsages'])) {
+                    $today = (new \Carbon\Carbon(timezone: \App\Consts::TIMEZONE))->format('Y-m-d');
+                    $firestore->collection($this->collectionName)->document('history')->set([
+                        $today => $summary['monthlyUsages']
+                    ], ['merge' => true]);
+                }
+                return $summary;
+            }
+            return $iijmio->getDetailedStatsFromHistory();
         } catch (\Throwable $e) {
             return [
                 'error' => $e->getMessage(),

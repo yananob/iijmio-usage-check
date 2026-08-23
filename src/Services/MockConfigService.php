@@ -94,9 +94,10 @@ final class MockConfigService implements ConfigServiceInterface
     }
 
     /**
+     * @param bool $refresh
      * @return array<string, mixed>
      */
-    public function getUsageSummary(): array
+    public function getUsageSummary(bool $refresh = false): array
     {
         $now = new \Carbon\Carbon('2025-02-15 12:00:00', timezone: \App\Consts::TIMEZONE);
         $remainingDays = $now->daysInMonth() - $now->day;

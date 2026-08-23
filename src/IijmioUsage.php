@@ -38,6 +38,72 @@ final class IijmioUsage
         return $this->buildSummary($remainingDataVolume, $monthlyUsages, $dailyUsages);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function getDetailedStatsFromHistory(): array
+    {
+        $now = new Carbon(timezone: Consts::TIMEZONE);
+        $currentYearMonth = $now->format('Y-m');
+
+        // Extract current month history records
+        $currentMonthHistory = [];
+        foreach ($this->history as $dateStr => $usages) {
+            if (str_starts_with((string)$dateStr, $currentYearMonth)) {
+                $currentMonthHistory[(string)$dateStr] = (array)$usages;
+            }
+        }
+        ksort($currentMonthHistory);
+
+        $monthlyUsages = [];
+        $dailyUsages = [];
+
+        if (!empty($currentMonthHistory)) {
+            $latestDate = (string)array_key_last($currentMonthHistory);
+            $latestUsages = $currentMonthHistory[$latestDate];
+
+            foreach ($latestUsages as $userKey => $val) {
+                $monthlyUsages[(string)$userKey] = (float)$val;
+            }
+
+            // Calculate daily usage from previous record in current month if available
+            $dates = array_keys($currentMonthHistory);
+            $count = count($dates);
+            if ($count >= 2) {
+                $prevDate = $dates[$count - 2];
+                $prevUsages = $currentMonthHistory[$prevDate];
+                foreach ($monthlyUsages as $userKey => $cumVal) {
+                    $prevVal = isset($prevUsages[$userKey]) ? (float)$prevUsages[$userKey] : 0.0;
+                    $dailyUsages[$userKey] = max(0.0, $cumVal - $prevVal);
+                }
+            } else {
+                foreach ($monthlyUsages as $userKey => $cumVal) {
+                    $dailyUsages[$userKey] = 0.0;
+                }
+            }
+        } else {
+            // Fallback: if no history for current month, initialize users with 0.0
+            if (isset($this->iijmioConfig->users)) {
+                foreach ($this->iijmioConfig->users as $userKey => $userVal) {
+                    $monthlyUsages[(string)$userKey] = 0.0;
+                    $dailyUsages[(string)$userKey] = 0.0;
+                }
+            }
+        }
+
+        // Calculate remaining data volume estimate from plan volume - current usage
+        $planDataVolume = 0.0;
+        if (isset($this->iijmioConfig->users)) {
+            foreach ($this->iijmioConfig->users as $user => $userInfo) {
+                $planDataVolume += $this->getUserPlanDataVolume((string)$user);
+            }
+        }
+        $thisMonthTotalUsageVal = array_sum($monthlyUsages);
+        $remainingDataVolume = ['current' => max(0.0, $planDataVolume - $thisMonthTotalUsageVal)];
+
+        return $this->buildSummary($remainingDataVolume, $monthlyUsages, $dailyUsages);
+    }
+
     private function crawl(): array
     {
         for ($i = 0; $i < 5; $i++) {
