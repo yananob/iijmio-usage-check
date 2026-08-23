@@ -26,4 +26,14 @@ interface ConfigServiceInterface
      * @return string
      */
     public function generatePreview(array $configData): string;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getUsageSummary(): array;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getHistoryData(): array;
 }
