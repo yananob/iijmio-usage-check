@@ -56,6 +56,7 @@ final class FirestoreConfigService implements ConfigServiceInterface
                 'bot' => (string)($alert['bot'] ?? ''),
                 'target' => (string)($alert['target'] ?? ''),
                 'send_usage_each_n_days' => (int)($alert['send_usage_each_n_days'] ?? 0),
+                'web_url' => (string)($alert['web_url'] ?? ''),
             ],
         ];
     }
@@ -88,7 +89,8 @@ final class FirestoreConfigService implements ConfigServiceInterface
             $configObj->iijmio,
             $configObj->alert->send_usage_each_n_days,
             $logger,
-            $history
+            $history,
+            $configObj->alert->web_url ?? null
         );
 
         try {
@@ -100,9 +102,10 @@ final class FirestoreConfigService implements ConfigServiceInterface
     }
 
     /**
+     * @param bool $refresh
      * @return array<string, mixed>
      */
-    public function getUsageSummary(): array
+    public function getUsageSummary(bool $refresh = false): array
     {
         $configData = $this->getConfig();
         if (empty($configData)) {
@@ -119,11 +122,22 @@ final class FirestoreConfigService implements ConfigServiceInterface
             $configObj->iijmio,
             (int)($configObj->alert->send_usage_each_n_days ?? 10),
             $logger,
-            $history
+            $history,
+            $configObj->alert->web_url ?? null
         );
 
         try {
-            return $iijmio->getDetailedStats();
+            if ($refresh) {
+                $summary = $iijmio->getDetailedStats();
+                if (!empty($summary['monthlyUsages'])) {
+                    $today = (new \Carbon\Carbon(timezone: \App\Consts::TIMEZONE))->format('Y-m-d');
+                    $firestore->collection($this->collectionName)->document('history')->set([
+                        $today => $summary['monthlyUsages']
+                    ], ['merge' => true]);
+                }
+                return $summary;
+            }
+            return $iijmio->getDetailedStatsFromHistory();
         } catch (\Throwable $e) {
             return [
                 'error' => $e->getMessage(),

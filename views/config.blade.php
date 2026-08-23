@@ -166,7 +166,7 @@
                             <h2 class="text-lg font-extrabold text-slate-800">Alert Settings</h2>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label for="alert_bot" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Bot Name</label>
                                 <input type="text" id="alert_bot" name="alert[bot]" value="{{ $config['alert']['bot'] ?? '' }}" required
@@ -180,6 +180,11 @@
                             <div>
                                 <label for="alert_days" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Send usage each N days</label>
                                 <input type="number" id="alert_days" name="alert[send_usage_each_n_days]" value="{{ $config['alert']['send_usage_each_n_days'] ?? '' }}" required
+                                       class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2.5 px-3.5 border transition">
+                            </div>
+                            <div>
+                                <label for="alert_web_url" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Web URL</label>
+                                <input type="url" id="alert_web_url" name="alert[web_url]" value="{{ $config['alert']['web_url'] ?? '' }}" placeholder="https://example.com"
                                        class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2.5 px-3.5 border transition">
                             </div>
                         </div>

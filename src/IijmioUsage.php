@@ -13,7 +13,8 @@ final class IijmioUsage
         private object $iijmioConfig,
         private int $sendEachNDays = 10,
         private ?Logger $logger = null,
-        private array $history = []
+        private array $history = [],
+        private ?string $webUrl = null
     ) {
     }
 
@@ -34,6 +35,72 @@ final class IijmioUsage
         $this->logger?->info("Starting to crawl IIJmio usage data...");
         [$remainingDataVolume, $monthlyUsages, $dailyUsages] = $this->crawl();
         $this->logger?->info("Successfully crawled data.");
+        return $this->buildSummary($remainingDataVolume, $monthlyUsages, $dailyUsages);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getDetailedStatsFromHistory(): array
+    {
+        $now = new Carbon(timezone: Consts::TIMEZONE);
+        $currentYearMonth = $now->format('Y-m');
+
+        // Extract current month history records
+        $currentMonthHistory = [];
+        foreach ($this->history as $dateStr => $usages) {
+            if (str_starts_with((string)$dateStr, $currentYearMonth)) {
+                $currentMonthHistory[(string)$dateStr] = (array)$usages;
+            }
+        }
+        ksort($currentMonthHistory);
+
+        $monthlyUsages = [];
+        $dailyUsages = [];
+
+        if (!empty($currentMonthHistory)) {
+            $latestDate = (string)array_key_last($currentMonthHistory);
+            $latestUsages = $currentMonthHistory[$latestDate];
+
+            foreach ($latestUsages as $userKey => $val) {
+                $monthlyUsages[(string)$userKey] = (float)$val;
+            }
+
+            // Calculate daily usage from previous record in current month if available
+            $dates = array_keys($currentMonthHistory);
+            $count = count($dates);
+            if ($count >= 2) {
+                $prevDate = $dates[$count - 2];
+                $prevUsages = $currentMonthHistory[$prevDate];
+                foreach ($monthlyUsages as $userKey => $cumVal) {
+                    $prevVal = isset($prevUsages[$userKey]) ? (float)$prevUsages[$userKey] : 0.0;
+                    $dailyUsages[$userKey] = max(0.0, $cumVal - $prevVal);
+                }
+            } else {
+                foreach ($monthlyUsages as $userKey => $cumVal) {
+                    $dailyUsages[$userKey] = 0.0;
+                }
+            }
+        } else {
+            // Fallback: if no history for current month, initialize users with 0.0
+            if (isset($this->iijmioConfig->users)) {
+                foreach ($this->iijmioConfig->users as $userKey => $userVal) {
+                    $monthlyUsages[(string)$userKey] = 0.0;
+                    $dailyUsages[(string)$userKey] = 0.0;
+                }
+            }
+        }
+
+        // Calculate remaining data volume estimate from plan volume - current usage
+        $planDataVolume = 0.0;
+        if (isset($this->iijmioConfig->users)) {
+            foreach ($this->iijmioConfig->users as $user => $userInfo) {
+                $planDataVolume += $this->getUserPlanDataVolume((string)$user);
+            }
+        }
+        $thisMonthTotalUsageVal = array_sum($monthlyUsages);
+        $remainingDataVolume = ['current' => max(0.0, $planDataVolume - $thisMonthTotalUsageVal)];
+
         return $this->buildSummary($remainingDataVolume, $monthlyUsages, $dailyUsages);
     }
 
@@ -328,23 +395,28 @@ final class IijmioUsage
         $remainingDays = $now->daysInMonth() - $now->day;
 
         $detailList = [];
+        $totalDailyRateVal = 0.0;
         foreach ($estimateDetails as $user => $detail) {
             $userName = $this->getUserName((string)$user);
+            $dailyRateVal = (float)($detail['avgConsumptionPerDay'] ?? 0.0);
+            $totalDailyRateVal += $dailyRateVal;
 
-            $currentUsageStr = sprintf("%.1f", $detail['currentUsage']);
-            $dailyUsageStr = sprintf("%.1f", $dailyUsages[(string)$user] ?? 0.0);
+            $dailyRateStr = sprintf("%.1f", $dailyRateVal);
+            $weeklyRateStr = sprintf("%.1f", $dailyRateVal * 7);
             $estimatedUserUsageStr = sprintf("%.1f", $detail['estimatedUserUsage']);
 
-            $detailList[] = "  {$userName}: {$currentUsageStr}GB (+{$dailyUsageStr}) → {$estimatedUserUsageStr}GB";
+            $detailList[] = "  {$userName}: {$dailyRateStr}/日 {$weeklyRateStr}/週 → {$estimatedUserUsageStr}GB";
         }
 
-        $thisMonthTotalUsageStr = sprintf("%.1f", array_sum($monthlyUsages));
-        $dailyTotalUsageStr = sprintf("%.1f", array_sum($dailyUsages));
+        $totalDailyRateStr = sprintf("%.1f", $totalDailyRateVal);
+        $totalWeeklyRateStr = sprintf("%.1f", $totalDailyRateVal * 7);
         $estimateUsageStr = sprintf("%.1f", $estimateUsage);
 
-        $detailList[] = "  TOTAL: {$thisMonthTotalUsageStr}GB (+{$dailyTotalUsageStr}) → {$estimateUsageStr}GB";
+        $detailList[] = "  TOTAL: {$totalDailyRateStr}/日 {$totalWeeklyRateStr}/週 → {$estimateUsageStr}GB";
 
         $detailStr = implode("\n", $detailList);
+
+        $webStr = !empty($this->webUrl) ? "\n\nWeb: " . trim($this->webUrl) : "";
 
         $message = <<<EOT
 {$subject}
@@ -360,7 +432,7 @@ Left: {$totalRemainingDataVolumeStr}GB
 過不足予定: {$shortageOrSurplusStr}GB
 
 [予測根拠] (残り{$remainingDays}日)
-{$detailStr}
+{$detailStr}{$webStr}
 EOT;
 
         return [

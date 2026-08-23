@@ -64,6 +64,18 @@ final class ConfigControllerTest extends TestCase
         $this->assertStringContainsString('[INFO] Mobile usage report', $data['message']);
     }
 
+    public function testHandleApiUsageMockWithRefresh(): void
+    {
+        $request = (new ServerRequest('GET', '/'))->withQueryParams(['mock' => '1', 'action' => 'api_usage', 'refresh' => '1']);
+        $controller = new ConfigController();
+        $json = $controller->handle($request);
+
+        $data = json_decode($json, true);
+        $this->assertIsArray($data);
+        $this->assertEquals(15.0, $data['planDataVolume']);
+        $this->assertEquals(6.6, $data['thisMonthTotalUsage']);
+    }
+
     public function testHandleApiHistoryMock(): void
     {
         $request = (new ServerRequest('GET', '/'))->withQueryParams(['mock' => '1', 'action' => 'api_history']);
@@ -169,7 +181,8 @@ final class ConfigControllerTest extends TestCase
             'alert' => [
                 'bot' => 'Bot1',
                 'target' => 'Target1',
-                'send_usage_each_n_days' => 5
+                'send_usage_each_n_days' => 5,
+                'web_url' => ''
             ]
         ];
 
