@@ -38,7 +38,7 @@ final class ConfigControllerTest extends TestCase
         $html = $controller->handle($request);
 
         $this->assertStringContainsString('<title>IIJmio Usage Checker - 日別グラフ</title>', $html);
-        $this->assertStringContainsString('月別グラフ画面へ', $html);
+        $this->assertStringContainsString('月別画面へ', $html);
     }
 
     public function testHandleGetRequestMonthlyMock(): void
@@ -48,7 +48,7 @@ final class ConfigControllerTest extends TestCase
         $html = $controller->handle($request);
 
         $this->assertStringContainsString('<title>IIJmio Usage Checker - 月別グラフ</title>', $html);
-        $this->assertStringContainsString('日別グラフ画面へ', $html);
+        $this->assertStringContainsString('日別画面へ', $html);
     }
 
     public function testHandleApiUsageMock(): void
@@ -76,6 +76,10 @@ final class ConfigControllerTest extends TestCase
         $this->assertArrayHasKey('daily', $data);
         $this->assertArrayHasKey('monthly', $data);
         $this->assertSame('Alice', $data['users']['hdo11111111']);
+
+        $firstDaily = $data['daily'][0];
+        $this->assertArrayHasKey('cumulativeUsages', $firstDaily);
+        $this->assertArrayHasKey('cumulativeTotal', $firstDaily);
     }
 
     public function testHandlePostSaveMock(): void

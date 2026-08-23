@@ -205,6 +205,8 @@ EOT;
                 'date' => $dateStr,
                 'usages' => $dailyCalculated,
                 'total' => round($totalDaily, 3),
+                'cumulativeUsages' => $usages,
+                'cumulativeTotal' => round(array_sum($usages), 3),
             ];
 
             $monthlyLatest[$currentMonth] = $usages;
