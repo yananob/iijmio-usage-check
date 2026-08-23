@@ -16,7 +16,7 @@ final class ConfigControllerTest extends TestCase
         $html = $controller->handle($request);
 
         $this->assertStringContainsString('<title>IIJmio Usage Checker - メイン</title>', $html);
-        $this->assertStringContainsString('全体使用量 ＆ 過不足予測', $html);
+        $this->assertStringContainsString('全体使用量 ＆ 月末着地点予測', $html);
         $this->assertStringContainsString('LINE通知レポートの内容', $html);
     }
 
