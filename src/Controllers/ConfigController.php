@@ -27,21 +27,25 @@ final class ConfigController
             ? new MockConfigService()
             : new FirestoreConfigService($collectionName));
 
-        $message = null;
-        $previewMessage = null;
+        $path = $request->getUri()->getPath();
+        $queryParams = $request->getQueryParams();
+        $page = $queryParams['page'] ?? null;
+        $action = $queryParams['action'] ?? null;
 
-        if ($request->getMethod() === 'POST') {
-            $params = (array)$request->getParsedBody();
-            $configData = $service->parseConfigFromParams($params);
-            $action = $params['action'] ?? 'save';
-
-            if ($action === 'save') {
-                $message = $service->saveConfig($configData);
-            } elseif ($action === 'preview') {
-                $previewMessage = $service->generatePreview($configData);
+        // API Endpoint: Usage Summary
+        if ($path === '/api/usage' || $action === 'api_usage') {
+            if (!headers_sent()) {
+                header('Content-Type: application/json');
             }
-        } else {
-            $configData = $service->getConfig();
+            return json_encode($service->getUsageSummary(), JSON_UNESCAPED_UNICODE) ?: '{}';
+        }
+
+        // API Endpoint: History Data
+        if ($path === '/api/history' || $action === 'api_history') {
+            if (!headers_sent()) {
+                header('Content-Type: application/json');
+            }
+            return json_encode($service->getHistoryData(), JSON_UNESCAPED_UNICODE) ?: '{}';
         }
 
         $views = dirname(__DIR__, 2) . '/views';
@@ -51,12 +55,60 @@ final class ConfigController
         }
         $blade = new BladeOne($views, $cache, BladeOne::MODE_AUTO);
 
-        return $blade->run("config", [
-            "message" => $message,
-            "previewMessage" => $previewMessage,
+        $appEnv = getenv('APP_ENV') ?: 'unknown';
+
+        // Page: Config
+        if ($path === '/config' || $page === 'config') {
+            $message = null;
+            $previewMessage = null;
+
+            if ($request->getMethod() === 'POST') {
+                $params = (array)$request->getParsedBody();
+                $configData = $service->parseConfigFromParams($params);
+                $postAction = $params['action'] ?? 'save';
+
+                if ($postAction === 'save') {
+                    $message = $service->saveConfig($configData);
+                } elseif ($postAction === 'preview') {
+                    $previewMessage = $service->generatePreview($configData);
+                }
+            } else {
+                $configData = $service->getConfig();
+            }
+
+            return $blade->run("config", [
+                "message" => $message,
+                "previewMessage" => $previewMessage,
+                "collectionName" => $collectionName,
+                "config" => $configData,
+                "appEnv" => $appEnv,
+                "currentPage" => "config",
+            ]);
+        }
+
+        // Page: Daily Graph
+        if ($path === '/daily' || $page === 'daily') {
+            return $blade->run("daily", [
+                "collectionName" => $collectionName,
+                "appEnv" => $appEnv,
+                "currentPage" => "daily",
+            ]);
+        }
+
+        // Page: Monthly Graph
+        if ($path === '/monthly' || $page === 'monthly') {
+            return $blade->run("monthly", [
+                "collectionName" => $collectionName,
+                "appEnv" => $appEnv,
+                "currentPage" => "monthly",
+            ]);
+        }
+
+        // Default Page: Main
+        return $blade->run("main", [
             "collectionName" => $collectionName,
-            "config" => $configData,
-            "appEnv" => getenv('APP_ENV') ?: 'unknown',
+            "appEnv" => $appEnv,
+            "currentPage" => "main",
         ]);
     }
 }
