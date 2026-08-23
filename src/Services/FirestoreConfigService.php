@@ -192,6 +192,8 @@ final class FirestoreConfigService implements ConfigServiceInterface
                 'date' => $dateStr,
                 'usages' => $dailyCalculated,
                 'total' => round($totalDaily, 3),
+                'cumulativeUsages' => $dateUsages,
+                'cumulativeTotal' => round(array_sum($dateUsages), 3),
             ];
 
             $monthlyLatest[$currentMonth] = $dateUsages;
