@@ -26,6 +26,17 @@ final class IijmioUsage
         return [$isSend, $message, $monthlyUsages];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function getDetailedStats(): array
+    {
+        $this->logger?->info("Starting to crawl IIJmio usage data...");
+        [$remainingDataVolume, $monthlyUsages, $dailyUsages] = $this->crawl();
+        $this->logger?->info("Successfully crawled data.");
+        return $this->buildSummary($remainingDataVolume, $monthlyUsages, $dailyUsages);
+    }
+
     private function crawl(): array
     {
         for ($i = 0; $i < 5; $i++) {
@@ -241,6 +252,18 @@ final class IijmioUsage
 
     private function judgeResult(array $remainingDataVolume, array $monthlyUsages, array $dailyUsages): array
     {
+        $summary = $this->buildSummary($remainingDataVolume, $monthlyUsages, $dailyUsages);
+        return [$summary['isSend'], $summary['message']];
+    }
+
+    /**
+     * @param array<string, float> $remainingDataVolume
+     * @param array<string, float> $monthlyUsages
+     * @param array<string, float> $dailyUsages
+     * @return array<string, mixed>
+     */
+    public function buildSummary(array $remainingDataVolume, array $monthlyUsages, array $dailyUsages): array
+    {
         $totalRemainingDataVolume = array_sum($remainingDataVolume);
         [$estimateUsage, $estimateDetails] = $this->estimateThisMonthUsage($monthlyUsages);
 
@@ -264,16 +287,33 @@ final class IijmioUsage
         }
 
         $thisMonthUsageList = [];
+        $usersList = [];
         foreach ($monthlyUsages as $user => $monthlyUsage) {
+            $userKey = (string)$user;
             $monthlyUsageStr = sprintf("%.1f", $monthlyUsage);
-            $dailyUsageStr = sprintf("%.1f", $dailyUsages[$user]);
-            $userName = $this->getUserName((string)$user);
+            $dailyUsageVal = $dailyUsages[$userKey] ?? 0.0;
+            $dailyUsageStr = sprintf("%.1f", $dailyUsageVal);
+            $userName = $this->getUserName($userKey);
+            $userPlanVol = $this->getUserPlanDataVolume($userKey);
+            $estimatedUserUsageVal = $estimateDetails[$userKey]['estimatedUserUsage'] ?? 0.0;
+
             $thisMonthUsageList[] = "  {$userName}: {$monthlyUsageStr}GB  (+{$dailyUsageStr})";
+
+            $usersList[] = [
+                'code' => $userKey,
+                'name' => $userName,
+                'currentUsage' => round($monthlyUsage, 2),
+                'dailyUsage' => round($dailyUsageVal, 2),
+                'estimatedUserUsage' => round($estimatedUserUsageVal, 2),
+                'planDataVolume' => round($userPlanVol, 2),
+            ];
         }
-        $thisMonthUsageList = implode("\n", $thisMonthUsageList);
+
+        $thisMonthUsageListStr = implode("\n", $thisMonthUsageList);
         $thisMonthTotalUsageVal = array_sum($monthlyUsages);
         $thisMonthTotalUsage = sprintf("%.1f", $thisMonthTotalUsageVal);
-        $dailyTotalUsage = sprintf("%.1f", array_sum($dailyUsages));
+        $dailyTotalUsageVal = array_sum($dailyUsages);
+        $dailyTotalUsage = sprintf("%.1f", $dailyTotalUsageVal);
         $thisMonthTotalUsageRate = $planDataVolume > 0 ? (int)round($thisMonthTotalUsageVal / $planDataVolume * 100, 0) : 0;
         $estimateUsageRate = $planDataVolume > 0 ? (int)round($estimateUsage / $planDataVolume * 100, 0) : 0;
         $planDataVolumeStr = sprintf("%.1f", $planDataVolume);
@@ -292,7 +332,7 @@ final class IijmioUsage
             $userName = $this->getUserName((string)$user);
 
             $currentUsageStr = sprintf("%.1f", $detail['currentUsage']);
-            $dailyUsageStr = sprintf("%.1f", $dailyUsages[$user]);
+            $dailyUsageStr = sprintf("%.1f", $dailyUsages[(string)$user] ?? 0.0);
             $estimatedUserUsageStr = sprintf("%.1f", $detail['estimatedUserUsage']);
 
             $detailList[] = "  {$userName}: {$currentUsageStr}GB (+{$dailyUsageStr}) → {$estimatedUserUsageStr}GB";
@@ -310,7 +350,7 @@ final class IijmioUsage
 {$subject}
 
 Usage:
-{$thisMonthUsageList}
+{$thisMonthUsageListStr}
   TOTAL: {$thisMonthTotalUsage}GB  (+{$dailyTotalUsage}, {$thisMonthTotalUsageRate}%)
 
 EoM: {$estimateUsage}GB  ({$estimateUsageRate}%)
@@ -323,7 +363,20 @@ Left: {$totalRemainingDataVolumeStr}GB
 {$detailStr}
 EOT;
 
-        return [$isSend, $message];
+        return [
+            'isSend' => $isSend,
+            'message' => $message,
+            'monthlyUsages' => $monthlyUsages,
+            'dailyUsages' => $dailyUsages,
+            'planDataVolume' => round($planDataVolume, 2),
+            'thisMonthTotalUsage' => round($thisMonthTotalUsageVal, 2),
+            'dailyTotalUsage' => round($dailyTotalUsageVal, 2),
+            'totalRemainingDataVolume' => round($totalRemainingDataVolume, 2),
+            'estimateUsage' => round($estimateUsage, 2),
+            'remainingConsumption' => round($remainingConsumption, 2),
+            'shortageOrSurplus' => round($shortageOrSurplus, 2),
+            'users' => $usersList,
+        ];
     }
 
     private function estimateThisMonthUsage(array $monthlyUsage): array

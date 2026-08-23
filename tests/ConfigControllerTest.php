@@ -9,9 +9,20 @@ use PHPUnit\Framework\TestCase;
 
 final class ConfigControllerTest extends TestCase
 {
-    public function testHandleGetRequestMock(): void
+    public function testHandleGetRequestMainMock(): void
     {
         $request = (new ServerRequest('GET', '/'))->withQueryParams(['mock' => '1']);
+        $controller = new ConfigController();
+        $html = $controller->handle($request);
+
+        $this->assertStringContainsString('<title>IIJmio Usage Checker - メイン</title>', $html);
+        $this->assertStringContainsString('全体使用量 ＆ 月末着地点予測', $html);
+        $this->assertStringContainsString('LINE通知レポートの内容', $html);
+    }
+
+    public function testHandleGetRequestConfigMock(): void
+    {
+        $request = (new ServerRequest('GET', '/'))->withQueryParams(['mock' => '1', 'page' => 'config']);
         $controller = new ConfigController();
         $html = $controller->handle($request);
 
@@ -20,10 +31,57 @@ final class ConfigControllerTest extends TestCase
         $this->assertStringContainsString('Alice', $html);
     }
 
+    public function testHandleGetRequestDailyMock(): void
+    {
+        $request = (new ServerRequest('GET', '/'))->withQueryParams(['mock' => '1', 'page' => 'daily']);
+        $controller = new ConfigController();
+        $html = $controller->handle($request);
+
+        $this->assertStringContainsString('<title>IIJmio Usage Checker - 日別グラフ</title>', $html);
+        $this->assertStringContainsString('月別グラフ画面へ', $html);
+    }
+
+    public function testHandleGetRequestMonthlyMock(): void
+    {
+        $request = (new ServerRequest('GET', '/'))->withQueryParams(['mock' => '1', 'page' => 'monthly']);
+        $controller = new ConfigController();
+        $html = $controller->handle($request);
+
+        $this->assertStringContainsString('<title>IIJmio Usage Checker - 月別グラフ</title>', $html);
+        $this->assertStringContainsString('日別グラフ画面へ', $html);
+    }
+
+    public function testHandleApiUsageMock(): void
+    {
+        $request = (new ServerRequest('GET', '/'))->withQueryParams(['mock' => '1', 'action' => 'api_usage']);
+        $controller = new ConfigController();
+        $json = $controller->handle($request);
+
+        $data = json_decode($json, true);
+        $this->assertIsArray($data);
+        $this->assertEquals(15.0, $data['planDataVolume']);
+        $this->assertEquals(6.6, $data['thisMonthTotalUsage']);
+        $this->assertStringContainsString('[INFO] Mobile usage report', $data['message']);
+    }
+
+    public function testHandleApiHistoryMock(): void
+    {
+        $request = (new ServerRequest('GET', '/'))->withQueryParams(['mock' => '1', 'action' => 'api_history']);
+        $controller = new ConfigController();
+        $json = $controller->handle($request);
+
+        $data = json_decode($json, true);
+        $this->assertIsArray($data);
+        $this->assertArrayHasKey('users', $data);
+        $this->assertArrayHasKey('daily', $data);
+        $this->assertArrayHasKey('monthly', $data);
+        $this->assertSame('Alice', $data['users']['hdo11111111']);
+    }
+
     public function testHandlePostSaveMock(): void
     {
         $request = (new ServerRequest('POST', '/'))
-            ->withQueryParams(['mock' => '1'])
+            ->withQueryParams(['mock' => '1', 'page' => 'config'])
             ->withParsedBody([
                 'action' => 'save',
                 'iijmio' => [
@@ -51,7 +109,7 @@ final class ConfigControllerTest extends TestCase
     public function testHandlePostPreviewMock(): void
     {
         $request = (new ServerRequest('POST', '/'))
-            ->withQueryParams(['mock' => '1'])
+            ->withQueryParams(['mock' => '1', 'page' => 'config'])
             ->withParsedBody([
                 'action' => 'preview',
                 'iijmio' => [
@@ -118,7 +176,7 @@ final class ConfigControllerTest extends TestCase
     {
         $mockService = new MockConfigService();
         $controller = new ConfigController($mockService);
-        $request = new ServerRequest('GET', '/');
+        $request = (new ServerRequest('GET', '/'))->withQueryParams(['page' => 'config']);
         $html = $controller->handle($request);
 
         $this->assertStringContainsString('<title>IIJmio Usage Checker Config</title>', $html);
