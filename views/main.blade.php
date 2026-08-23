@@ -72,20 +72,14 @@
                         <div class="border-b border-slate-200/60 pb-3 flex items-center justify-between">
                             <div class="flex items-center gap-2.5">
                                 <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
                                 </svg>
-                                <h2 class="text-lg font-extrabold text-slate-800">全体使用量 ＆ 過不足予測</h2>
+                                <h2 class="text-lg font-extrabold text-slate-800">全体使用量 ＆ 月末着地点予測</h2>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                            <div class="relative h-64 flex justify-center items-center">
-                                <canvas id="usageChart"></canvas>
-                            </div>
-                            <div class="relative h-64 flex justify-center items-center">
-                                <canvas id="surplusChart"></canvas>
-                            </div>
+                        <div class="relative h-72 sm:h-80 flex justify-center items-center">
+                            <canvas id="landingChart"></canvas>
                         </div>
                     </div>
 
@@ -193,54 +187,63 @@
             // LINE Report
             document.getElementById('line-report-text').textContent = data.message || '';
 
-            // Render Chart 1: Total Usage vs Capacity
-            const ctx1 = document.getElementById('usageChart').getContext('2d');
-            new Chart(ctx1, {
-                type: 'doughnut',
+            // Render Landing Prediction Chart
+            const ctx = document.getElementById('landingChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
                 data: {
-                    labels: ['当月使用量', '残りクーポン容量'],
-                    datasets: [{
-                        data: [data.thisMonthTotalUsage || 0, data.totalRemainingDataVolume || 0],
-                        backgroundColor: ['#6366f1', '#10b981'],
-                        borderWidth: 0
-                    }]
+                    labels: ['契約容量', '今月の使用予定', '過不足予定'],
+                    datasets: [
+                        {
+                            label: '契約容量',
+                            data: [data.planDataVolume || 0, 0, 0],
+                            backgroundColor: '#6366f1',
+                            stack: 'plan',
+                            borderRadius: 6
+                        },
+                        {
+                            label: '当月使用量',
+                            data: [0, data.thisMonthTotalUsage || 0, 0],
+                            backgroundColor: '#3b82f6',
+                            stack: 'estimate',
+                            borderRadius: 0
+                        },
+                        {
+                            label: '残り消費予定',
+                            data: [0, data.remainingConsumption || 0, 0],
+                            backgroundColor: '#a855f7',
+                            stack: 'estimate',
+                            borderRadius: 6
+                        },
+                        {
+                            label: '過不足予定',
+                            data: [0, 0, shortageOrSurplus],
+                            backgroundColor: shortageOrSurplus >= 0 ? '#10b981' : '#f43f5e',
+                            stack: 'surplus',
+                            borderRadius: 6
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'bottom' },
-                        title: { display: true, text: '使用量と残量 (GB)', font: { size: 14, weight: 'bold' } }
-                    }
-                }
-            });
-
-            // Render Chart 2: End-of-month prediction & Surplus/Shortage
-            const ctx2 = document.getElementById('surplusChart').getContext('2d');
-            new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: ['月末予測使用量', '残り消費予定', '過不足予定'],
-                    datasets: [{
-                        label: 'GB',
-                        data: [data.estimateUsage || 0, data.remainingConsumption || 0, shortageOrSurplus],
-                        backgroundColor: [
-                            '#8b5cf6',
-                            '#f59e0b',
-                            shortageOrSurplus >= 0 ? '#10b981' : '#f43f5e'
-                        ],
-                        borderRadius: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        title: { display: true, text: '予測 & 過不足予定 (GB)', font: { size: 14, weight: 'bold' } }
+                        title: {
+                            display: true,
+                            text: '月末着地点予測 (GB)',
+                            font: { size: 15, weight: 'bold' }
+                        }
                     },
                     scales: {
-                        y: { beginAtZero: true }
+                        x: {
+                            stacked: true,
+                            grid: { display: false }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true
+                        }
                     }
                 }
             });
