@@ -33,7 +33,7 @@ gha-creds-*.json
 **/miscs/
 
 # for PHP
-_cf-common/
+_myapps-common/
 cache/
 vendor/
 templates_c/

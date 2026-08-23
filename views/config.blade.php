@@ -16,26 +16,8 @@
 <body class="h-full text-slate-800 font-sans antialiased">
     <div class="min-h-screen py-10 px-4 sm:px-6 lg:px-8 flex flex-col justify-between">
         <div class="max-w-4xl w-full mx-auto bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden mb-12">
-            <!-- Modern Header -->
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-8 sm:px-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">IIJmio Usage Checker</h1>
-                    <p class="text-blue-100 mt-1 sm:mt-2 text-sm font-medium">Firestore Configuration & Management Dashboard</p>
-                </div>
-                <div class="flex flex-wrap gap-2 items-start md:items-center">
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white backdrop-blur-sm border border-white/10">
-                        <span class="w-2 h-2 rounded-full bg-blue-300 animate-pulse"></span>
-                        {{ $collectionName }}
-                    </span>
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
-                          @if($appEnv === 'production') bg-red-500/25 text-red-100 border border-red-500/30
-                          @elseif($appEnv === 'test') bg-amber-500/25 text-amber-100 border border-amber-500/30
-                          @else bg-slate-500/25 text-slate-100 border border-slate-500/30
-                          @endif backdrop-blur-sm uppercase">
-                        {{ $appEnv }}
-                    </span>
-                </div>
-            </div>
+            <!-- Navigation Header -->
+            @include('nav')
 
             <!-- Toast / Success Messages -->
             @if($message)
