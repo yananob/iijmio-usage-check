@@ -44,49 +44,68 @@ final class IijmioUsage
     public function getDetailedStatsFromHistory(): array
     {
         $now = new Carbon(timezone: Consts::TIMEZONE);
-        $currentYearMonth = $now->format('Y-m');
+        $todayStr = $now->format('Y-m-d');
+        $yesterdayStr = $now->copy()->subDay()->format('Y-m-d');
 
-        // Extract current month history records
-        $currentMonthHistory = [];
-        foreach ($this->history as $dateStr => $usages) {
-            if (str_starts_with((string)$dateStr, $currentYearMonth)) {
-                $currentMonthHistory[(string)$dateStr] = (array)$usages;
-            }
+        $sortedHistory = $this->history;
+        ksort($sortedHistory);
+
+        $targetDate = null;
+        if (isset($sortedHistory[$todayStr])) {
+            $targetDate = $todayStr;
+        } elseif (isset($sortedHistory[$yesterdayStr])) {
+            $targetDate = $yesterdayStr;
         }
-        ksort($currentMonthHistory);
 
         $monthlyUsages = [];
         $dailyUsages = [];
 
-        if (!empty($currentMonthHistory)) {
-            $latestDate = (string)array_key_last($currentMonthHistory);
-            $latestUsages = $currentMonthHistory[$latestDate];
-
-            foreach ($latestUsages as $userKey => $val) {
+        if ($targetDate !== null) {
+            $targetUsages = (array)$sortedHistory[$targetDate];
+            foreach ($targetUsages as $userKey => $val) {
                 $monthlyUsages[(string)$userKey] = (float)$val;
             }
 
-            // Calculate daily usage from previous record in current month if available
-            $dates = array_keys($currentMonthHistory);
-            $count = count($dates);
-            if ($count >= 2) {
-                $prevDate = $dates[$count - 2];
-                $prevUsages = $currentMonthHistory[$prevDate];
+            // Find preceding record date before $targetDate
+            $prevDate = null;
+            foreach (array_keys($sortedHistory) as $dateStr) {
+                $dateStr = (string)$dateStr;
+                if ($dateStr < $targetDate) {
+                    $prevDate = $dateStr;
+                } else {
+                    break;
+                }
+            }
+
+            if ($prevDate !== null) {
+                $prevUsages = (array)$sortedHistory[$prevDate];
+                $targetMonth = substr($targetDate, 0, 7);
+                $prevMonth = substr($prevDate, 0, 7);
+
                 foreach ($monthlyUsages as $userKey => $cumVal) {
-                    $prevVal = isset($prevUsages[$userKey]) ? (float)$prevUsages[$userKey] : 0.0;
-                    $dailyUsages[$userKey] = max(0.0, $cumVal - $prevVal);
+                    if ($targetMonth === $prevMonth && isset($prevUsages[$userKey])) {
+                        $prevVal = (float)$prevUsages[$userKey];
+                        $dailyUsages[$userKey] = max(0.0, $cumVal - $prevVal);
+                    } else {
+                        $dailyUsages[$userKey] = $cumVal;
+                    }
                 }
             } else {
                 foreach ($monthlyUsages as $userKey => $cumVal) {
-                    $dailyUsages[$userKey] = 0.0;
+                    $dailyUsages[$userKey] = $cumVal;
                 }
             }
-        } else {
-            // Fallback: if no history for current month, initialize users with 0.0
-            if (isset($this->iijmioConfig->users)) {
-                foreach ($this->iijmioConfig->users as $userKey => $userVal) {
-                    $monthlyUsages[(string)$userKey] = 0.0;
-                    $dailyUsages[(string)$userKey] = 0.0;
+        }
+
+        // Ensure all configured users exist in $monthlyUsages and $dailyUsages
+        if (isset($this->iijmioConfig->users)) {
+            foreach ($this->iijmioConfig->users as $userKey => $userVal) {
+                $uKey = (string)$userKey;
+                if (!isset($monthlyUsages[$uKey])) {
+                    $monthlyUsages[$uKey] = 0.0;
+                }
+                if (!isset($dailyUsages[$uKey])) {
+                    $dailyUsages[$uKey] = 0.0;
                 }
             }
         }
