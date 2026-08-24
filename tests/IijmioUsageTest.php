@@ -306,7 +306,7 @@ EOT;
         $this->assertSame('previous_month', $details['hdo12345678']['baselineSource']);
     }
 
-    public function testGetDetailedStatsFromHistory(): void
+    public function testGetDetailedStatsFromHistoryWhenTodayExists(): void
     {
         Carbon::setTestNow(new Carbon('2024-11-15 12:00:00', timezone: Consts::TIMEZONE));
 
@@ -331,5 +331,68 @@ EOT;
         $this->assertSame(3.7, $summary['thisMonthTotalUsage']);
         $this->assertSame(0.7, $summary['dailyTotalUsage']);
         $this->assertCount(2, $summary['users']);
+    }
+
+    public function testGetDetailedStatsFromHistoryWhenTodayMissingAndYesterdayExists(): void
+    {
+        Carbon::setTestNow(new Carbon('2024-11-16 12:00:00', timezone: Consts::TIMEZONE));
+
+        $history = [
+            "2024-11-14" => [
+                "hdo12345678" => 1.0,
+                "hdo22345678" => 2.0,
+            ],
+            "2024-11-15" => [
+                "hdo12345678" => 1.2,
+                "hdo22345678" => 2.5,
+            ]
+        ];
+
+        $iijmio = new IijmioUsage(
+            iijmioConfig: $this->config->iijmio,
+            history: $history
+        );
+
+        $summary = $iijmio->getDetailedStatsFromHistory();
+
+        // Should display yesterday's (2024-11-15) stats as current stats
+        $this->assertSame(3.7, $summary['thisMonthTotalUsage']);
+        // Difference from 2024-11-14 to 2024-11-15 is (1.2-1.0) + (2.5-2.0) = 0.7
+        $this->assertSame(0.7, $summary['dailyTotalUsage']);
+        $this->assertCount(2, $summary['users']);
+        $this->assertSame(1.2, $summary['users'][0]['currentUsage']);
+        $this->assertSame(0.2, $summary['users'][0]['dailyUsage']);
+        $this->assertSame(2.5, $summary['users'][1]['currentUsage']);
+        $this->assertSame(0.5, $summary['users'][1]['dailyUsage']);
+    }
+
+    public function testGetDetailedStatsFromHistoryWhenTodayAndYesterdayMissing(): void
+    {
+        Carbon::setTestNow(new Carbon('2024-11-17 12:00:00', timezone: Consts::TIMEZONE));
+
+        $history = [
+            "2024-11-14" => [
+                "hdo12345678" => 1.0,
+                "hdo22345678" => 2.0,
+            ],
+            "2024-11-15" => [
+                "hdo12345678" => 1.2,
+                "hdo22345678" => 2.5,
+            ]
+        ];
+
+        $iijmio = new IijmioUsage(
+            iijmioConfig: $this->config->iijmio,
+            history: $history
+        );
+
+        $summary = $iijmio->getDetailedStatsFromHistory();
+
+        // Neither today (17th) nor yesterday (16th) exists in history -> fall back to empty/zero
+        $this->assertSame(0.0, $summary['thisMonthTotalUsage']);
+        $this->assertSame(0.0, $summary['dailyTotalUsage']);
+        $this->assertCount(2, $summary['users']);
+        $this->assertSame(0.0, $summary['users'][0]['currentUsage']);
+        $this->assertSame(0.0, $summary['users'][0]['dailyUsage']);
     }
 }
