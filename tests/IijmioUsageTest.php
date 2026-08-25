@@ -306,6 +306,52 @@ EOT;
         $this->assertSame('previous_month', $details['hdo12345678']['baselineSource']);
     }
 
+    public function testBuildSummaryReturnsTotalRemainingDataVolume(): void
+    {
+        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
+        $summary = Test::invokePrivateMethod(
+            $iijmio,
+            "buildSummary",
+            ["202411" => 2.5, "202412" => 5.0],
+            ["hdo12345678" => 1.0, "hdo22345678" => 2.0],
+            ["hdo12345678" => 0.1, "hdo22345678" => 0.2]
+        );
+
+        $this->assertIsArray($summary);
+        $this->assertArrayHasKey('totalRemainingDataVolume', $summary);
+        $this->assertSame(7.5, $summary['totalRemainingDataVolume']);
+    }
+
+    public function testGetDetailedStatsFromHistoryWithSavedCouponData(): void
+    {
+        Carbon::setTestNow(new Carbon('2024-11-15 12:00:00', timezone: Consts::TIMEZONE));
+
+        $history = [
+            "2024-11-14" => [
+                "hdo12345678" => 1.0,
+                "hdo22345678" => 2.0,
+                "coupon" => 9.0,
+            ],
+            "2024-11-15" => [
+                "hdo12345678" => 1.2,
+                "hdo22345678" => 2.5,
+                "coupon" => 8.4,
+            ]
+        ];
+
+        $iijmio = new IijmioUsage(
+            iijmioConfig: $this->config->iijmio,
+            history: $history
+        );
+
+        $summary = $iijmio->getDetailedStatsFromHistory();
+
+        $this->assertSame(3.7, $summary['thisMonthTotalUsage']);
+        $this->assertSame(0.7, $summary['dailyTotalUsage']);
+        $this->assertSame(8.4, $summary['totalRemainingDataVolume']);
+        $this->assertCount(2, $summary['users']);
+    }
+
     public function testGetDetailedStatsFromHistoryWhenTodayExists(): void
     {
         Carbon::setTestNow(new Carbon('2024-11-15 12:00:00', timezone: Consts::TIMEZONE));

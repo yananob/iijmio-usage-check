@@ -24,7 +24,8 @@ final class IijmioUsage
         [$remainingDataVolume, $monthlyUsages, $dailyUsages] = $this->crawl();
         $this->logger?->info("Successfully crawled data.");
         [$isSend, $message] = $this->judgeResult($remainingDataVolume, $monthlyUsages, $dailyUsages);
-        return [$isSend, $message, $monthlyUsages];
+        $totalRemainingDataVolume = array_sum($remainingDataVolume);
+        return [$isSend, $message, $monthlyUsages, round($totalRemainingDataVolume, 2)];
     }
 
     /**
@@ -59,11 +60,23 @@ final class IijmioUsage
 
         $monthlyUsages = [];
         $dailyUsages = [];
+        $savedTotalRemainingDataVolume = null;
 
         if ($targetDate !== null) {
             $targetUsages = (array)$sortedHistory[$targetDate];
+
+            if (isset($targetUsages['coupon'])) {
+                $savedTotalRemainingDataVolume = (float)$targetUsages['coupon'];
+            } elseif (isset($targetUsages['totalRemainingDataVolume'])) {
+                $savedTotalRemainingDataVolume = (float)$targetUsages['totalRemainingDataVolume'];
+            }
+
             foreach ($targetUsages as $userKey => $val) {
-                $monthlyUsages[(string)$userKey] = (float)$val;
+                $uKey = (string)$userKey;
+                if ($uKey === 'coupon' || $uKey === 'totalRemainingDataVolume') {
+                    continue;
+                }
+                $monthlyUsages[$uKey] = (float)$val;
             }
 
             // Find preceding record date before $targetDate
@@ -110,15 +123,19 @@ final class IijmioUsage
             }
         }
 
-        // Calculate remaining data volume estimate from plan volume - current usage
-        $planDataVolume = 0.0;
-        if (isset($this->iijmioConfig->users)) {
-            foreach ($this->iijmioConfig->users as $user => $userInfo) {
-                $planDataVolume += $this->getUserPlanDataVolume((string)$user);
+        if ($savedTotalRemainingDataVolume !== null) {
+            $remainingDataVolume = ['coupon' => $savedTotalRemainingDataVolume];
+        } else {
+            // Calculate remaining data volume estimate from plan volume - current usage
+            $planDataVolume = 0.0;
+            if (isset($this->iijmioConfig->users)) {
+                foreach ($this->iijmioConfig->users as $user => $userInfo) {
+                    $planDataVolume += $this->getUserPlanDataVolume((string)$user);
+                }
             }
+            $thisMonthTotalUsageVal = array_sum($monthlyUsages);
+            $remainingDataVolume = ['current' => max(0.0, $planDataVolume - $thisMonthTotalUsageVal)];
         }
-        $thisMonthTotalUsageVal = array_sum($monthlyUsages);
-        $remainingDataVolume = ['current' => max(0.0, $planDataVolume - $thisMonthTotalUsageVal)];
 
         return $this->buildSummary($remainingDataVolume, $monthlyUsages, $dailyUsages);
     }
