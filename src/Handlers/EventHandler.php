@@ -41,12 +41,16 @@ final class EventHandler
             $history,
             $config->alert->web_url ?? null
         );
-        [$isSendAlert, $message, $monthlyUsages] = $iijmio->getStats();
+        [$isSendAlert, $message, $monthlyUsages, $totalRemainingDataVolume] = $iijmio->getStats();
 
         if (!empty($monthlyUsages)) {
             $today = (new Carbon(timezone: Consts::TIMEZONE))->format('Y-m-d');
+            $historyData = $monthlyUsages;
+            if ($totalRemainingDataVolume !== null) {
+                $historyData['coupon'] = $totalRemainingDataVolume;
+            }
             $firestore->collection($collectionName)->document('history')->set([
-                $today => $monthlyUsages
+                $today => $historyData
             ], ['merge' => true]);
             $logger->log("Saved daily usage history for {$today}.");
         }

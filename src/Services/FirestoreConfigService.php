@@ -131,8 +131,12 @@ final class FirestoreConfigService implements ConfigServiceInterface
                 $summary = $iijmio->getDetailedStats();
                 if (!empty($summary['monthlyUsages'])) {
                     $today = (new \Carbon\Carbon(timezone: \App\Consts::TIMEZONE))->format('Y-m-d');
+                    $historyData = $summary['monthlyUsages'];
+                    if (isset($summary['totalRemainingDataVolume'])) {
+                        $historyData['coupon'] = $summary['totalRemainingDataVolume'];
+                    }
                     $firestore->collection($this->collectionName)->document('history')->set([
-                        $today => $summary['monthlyUsages']
+                        $today => $historyData
                     ], ['merge' => true]);
                 }
                 return $summary;
@@ -184,7 +188,11 @@ final class FirestoreConfigService implements ConfigServiceInterface
             $dateUsages = [];
             if (is_array($usages) || is_object($usages)) {
                 foreach ((array)$usages as $userKey => $val) {
-                    $dateUsages[(string)$userKey] = (float)$val;
+                    $uKey = (string)$userKey;
+                    if ($uKey === 'coupon' || $uKey === 'totalRemainingDataVolume') {
+                        continue;
+                    }
+                    $dateUsages[$uKey] = (float)$val;
                 }
             }
 

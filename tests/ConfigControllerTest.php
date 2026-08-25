@@ -189,6 +189,31 @@ final class ConfigControllerTest extends TestCase
         $this->assertSame($expected, $parsed);
     }
 
+    public function testFirestoreConfigServiceProcessHistoryIgnoresCouponKey(): void
+    {
+        $service = new \App\Services\FirestoreConfigService('test_collection');
+        $rawHistory = [
+            '2025-02-15' => [
+                'hdo11111111' => 2.1,
+                'hdo22222222' => 4.5,
+                'coupon' => 8.4,
+            ]
+        ];
+        $userNames = [
+            'hdo11111111' => 'Alice',
+            'hdo22222222' => 'Bob',
+        ];
+
+        $result = \App\Utils\Test::invokePrivateMethod($service, 'processHistory', $rawHistory, $userNames);
+
+        $this->assertCount(1, $result['daily']);
+        $dailyEntry = $result['daily'][0];
+        $this->assertArrayHasKey('hdo11111111', $dailyEntry['usages']);
+        $this->assertArrayHasKey('hdo22222222', $dailyEntry['usages']);
+        $this->assertArrayNotHasKey('coupon', $dailyEntry['usages']);
+        $this->assertSame(6.6, $dailyEntry['total']);
+    }
+
     public function testConfigControllerWithInjectedService(): void
     {
         $mockService = new MockConfigService();
