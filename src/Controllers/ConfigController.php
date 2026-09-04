@@ -9,6 +9,9 @@ use App\Services\MockConfigService;
 use eftec\bladeone\BladeOne;
 use Psr\Http\Message\ServerRequestInterface;
 
+/**
+ * HTTPリクエストをルーティングし、Web画面描画またはAPIレスポンスを返却するコントローラー
+ */
 final class ConfigController
 {
     private ?ConfigServiceInterface $service;
@@ -18,6 +21,12 @@ final class ConfigController
         $this->service = $service;
     }
 
+    /**
+     * HTTPリクエストのハンドリングを行う
+     *
+     * @param ServerRequestInterface $request
+     * @return string
+     */
     public function handle(ServerRequestInterface $request): string
     {
         $isMock = ($request->getQueryParams()['mock'] ?? false) || (getenv('MOCK_FIRESTORE') === '1');
@@ -32,7 +41,7 @@ final class ConfigController
         $page = $queryParams['page'] ?? null;
         $action = $queryParams['action'] ?? null;
 
-        // API Endpoint: Usage Summary
+        // API エンドポイント: 当月利用状況サマリー
         if ($path === '/api/usage' || $action === 'api_usage') {
             if (!headers_sent()) {
                 header('Content-Type: application/json');
@@ -41,7 +50,7 @@ final class ConfigController
             return json_encode($service->getUsageSummary($refresh), JSON_UNESCAPED_UNICODE) ?: '{}';
         }
 
-        // API Endpoint: History Data
+        // API エンドポイント: 履歴データ
         if ($path === '/api/history' || $action === 'api_history') {
             if (!headers_sent()) {
                 header('Content-Type: application/json');
@@ -58,7 +67,7 @@ final class ConfigController
 
         $appEnv = getenv('APP_ENV') ?: 'unknown';
 
-        // Page: Config
+        // 画面: 設定ページ (`/config`)
         if ($path === '/config' || $page === 'config') {
             $message = null;
             $previewMessage = null;
@@ -87,7 +96,7 @@ final class ConfigController
             ]);
         }
 
-        // Page: Daily Graph
+        // 画面: 日別グラフ (`/daily`)
         if ($path === '/daily' || $page === 'daily') {
             return $blade->run("daily", [
                 "collectionName" => $collectionName,
@@ -96,7 +105,7 @@ final class ConfigController
             ]);
         }
 
-        // Page: Monthly Graph
+        // 画面: 月別グラフ (`/monthly`)
         if ($path === '/monthly' || $page === 'monthly') {
             return $blade->run("monthly", [
                 "collectionName" => $collectionName,
@@ -105,7 +114,7 @@ final class ConfigController
             ]);
         }
 
-        // Default Page: Main
+        // デフォルト画面: メインダッシュボード (`/`)
         return $blade->run("main", [
             "collectionName" => $collectionName,
             "appEnv" => $appEnv,
