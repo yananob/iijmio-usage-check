@@ -52,7 +52,23 @@
                 <div id="content-container" class="hidden space-y-5">
                     <div class="bg-slate-50/60 p-4 sm:p-5 rounded-2xl border border-slate-100 space-y-4">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200/60 pb-3 gap-3">
-                            <h2 class="text-base font-extrabold text-slate-800" id="chart-title">日別・個人別使用量 (GB)</h2>
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <h2 class="text-base font-extrabold text-slate-800" id="chart-title">日別・個人別使用量 (GB)</h2>
+                                <!-- Month Navigation -->
+                                <div class="flex items-center gap-1 bg-slate-200/80 p-1 rounded-xl">
+                                    <button id="btn-prev-month" onclick="changeMonth(-1)" class="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" title="前月">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                                        </svg>
+                                    </button>
+                                    <span id="current-month-label" class="text-xs font-bold text-slate-800 font-mono px-1.5 min-w-[70px] text-center">--</span>
+                                    <button id="btn-next-month" onclick="changeMonth(1)" class="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" title="次月">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                             <!-- Toggle Button Group -->
                             <div class="inline-flex p-1 bg-slate-200/80 rounded-xl space-x-1 shrink-0 self-start sm:self-auto">
                                 <button id="btn-mode-daily" onclick="switchMode('daily')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-indigo-600 text-white shadow-sm">
@@ -87,12 +103,42 @@
 
     <script>
         let currentMode = 'daily'; // 'daily' or 'cumulative'
+        let selectedMonth = null;  // 'YYYY-MM'
         let historyDataGlobal = null;
         let usageDataGlobal = null;
         let dailyChartInstance = null;
 
+        function getTodayJst() {
+            const now = new Date();
+            const jstFormatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Tokyo',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            const parts = jstFormatter.formatToParts(now);
+            const y = parts.find(p => p.type === 'year').value;
+            const m = parts.find(p => p.type === 'month').value;
+            const d = parts.find(p => p.type === 'day').value;
+            return {
+                yearMonth: `${y}-${m}`,
+                year: parseInt(y, 10),
+                month: parseInt(m, 10),
+                day: parseInt(d, 10),
+                dateStr: `${y}-${m}-${d}`
+            };
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const currentParams = new URLSearchParams(window.location.search);
+            const monthParam = currentParams.get('month');
+            const todayJst = getTodayJst();
+
+            if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
+                selectedMonth = monthParam;
+            } else {
+                selectedMonth = todayJst.yearMonth;
+            }
 
             const historyParams = new URLSearchParams(currentParams);
             historyParams.set('action', 'api_history');
@@ -140,15 +186,84 @@
             renderDashboard();
         }
 
+        function changeMonth(offset) {
+            if (!selectedMonth) return;
+            let [y, m] = selectedMonth.split('-').map(Number);
+            m += offset;
+            if (m > 12) {
+                y += 1;
+                m = 1;
+            } else if (m < 1) {
+                y -= 1;
+                m = 12;
+            }
+            selectedMonth = `${y}-${m < 10 ? '0' + m : m}`;
+
+            const currentParams = new URLSearchParams(window.location.search);
+            currentParams.set('month', selectedMonth);
+            window.history.replaceState({}, '', '?' + currentParams.toString());
+
+            renderDashboard();
+        }
+
         function renderDashboard() {
             if (!historyDataGlobal) return;
 
             document.getElementById('loading-skeleton').classList.add('hidden');
             document.getElementById('content-container').classList.remove('hidden');
 
+            const todayJst = getTodayJst();
+            if (!selectedMonth) {
+                selectedMonth = todayJst.yearMonth;
+            }
+
+            // Update Month header UI
+            const monthLabel = document.getElementById('current-month-label');
+            if (monthLabel) {
+                const [y, m] = selectedMonth.split('-');
+                monthLabel.textContent = `${y}年${m}月`;
+            }
+
+            const btnNextMonth = document.getElementById('btn-next-month');
+            if (btnNextMonth) {
+                btnNextMonth.disabled = (selectedMonth >= todayJst.yearMonth);
+            }
+
             const users = historyDataGlobal.users || {};
             const userKeys = Object.keys(users);
-            const dailyData = historyDataGlobal.daily || [];
+
+            // Determine date range for selectedMonth (1日〜当日 or 1日〜月末)
+            const [sYear, sMonth] = selectedMonth.split('-').map(Number);
+            let maxDay = 31;
+            if (selectedMonth === todayJst.yearMonth) {
+                maxDay = todayJst.day;
+            } else {
+                maxDay = new Date(sYear, sMonth, 0).getDate();
+            }
+
+            const monthDates = [];
+            for (let d = 1; d <= maxDay; d++) {
+                const dStr = d < 10 ? '0' + d : '' + d;
+                monthDates.push(`${selectedMonth}-${dStr}`);
+            }
+
+            const dailyMap = {};
+            (historyDataGlobal.daily || []).forEach(d => {
+                dailyMap[d.date] = d;
+            });
+
+            const monthData = monthDates.map(dateStr => {
+                if (dailyMap[dateStr]) {
+                    return dailyMap[dateStr];
+                }
+                return {
+                    date: dateStr,
+                    usages: {},
+                    total: 0,
+                    cumulativeUsages: {},
+                    cumulativeTotal: 0
+                };
+            });
 
             const colors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
 
@@ -162,11 +277,11 @@
                 document.getElementById('chart-title').textContent = '日別・個人別使用量 (GB)';
                 document.getElementById('table-title').textContent = '日別使用量 履歴テーブル';
 
-                const labels = dailyData.map(d => d.date);
+                const labels = monthData.map(d => d.date);
                 const datasets = userKeys.map((key, idx) => ({
                     type: 'bar',
                     label: users[key] || key,
-                    data: dailyData.map(d => d.usages[key] ?? 0),
+                    data: monthData.map(d => d.usages[key] ?? 0),
                     backgroundColor: colors[idx % colors.length],
                     borderRadius: 4,
                     stack: 'dailyStack'
@@ -179,7 +294,7 @@
                         maintainAspectRatio: false,
                         plugins: {
                             legend: { position: 'bottom' },
-                            title: { display: true, text: '日別データ使用量 (GB)', font: { size: 14, weight: 'bold' } }
+                            title: { display: true, text: `${selectedMonth} 日別データ使用量 (GB)`, font: { size: 14, weight: 'bold' } }
                         },
                         scales: {
                             x: { stacked: true },
@@ -192,31 +307,23 @@
                 document.getElementById('chart-title').textContent = '累積使用量 ＆ 月末予測 (GB)';
                 document.getElementById('table-title').textContent = '累積使用量 履歴テーブル';
 
-                const labels = dailyData.map(d => d.date);
+                const labels = monthData.map(d => d.date);
 
                 const datasets = userKeys.map((key, idx) => ({
                     type: 'bar',
                     label: users[key] || key,
-                    data: dailyData.map(d => (d.cumulativeUsages ? d.cumulativeUsages[key] : null) ?? d.usages[key] ?? 0),
+                    data: monthData.map(d => (d.cumulativeUsages ? d.cumulativeUsages[key] : null) ?? d.usages[key] ?? 0),
                     backgroundColor: colors[idx % colors.length],
                     borderRadius: 4,
                     stack: 'cumStack'
                 }));
 
-                // Add End-of-Month prediction trendline for current month
-                if (usageDataGlobal && usageDataGlobal.estimateUsage && dailyData.length > 0) {
-                    const latestDate = dailyData[dailyData.length - 1].date;
-                    const latestMonth = latestDate.substring(0, 7);
-
+                // Add End-of-Month prediction trendline only for current month
+                if (selectedMonth === todayJst.yearMonth && usageDataGlobal && usageDataGlobal.estimateUsage && monthData.length > 0) {
                     labels.push('月末予測');
                     datasets.forEach(ds => ds.data.push(null));
 
-                    const totalTrendData = dailyData.map(d => {
-                        if (d.date.startsWith(latestMonth)) {
-                            return d.cumulativeTotal ?? d.total ?? 0;
-                        }
-                        return null;
-                    });
+                    const totalTrendData = monthData.map(d => d.cumulativeTotal ?? d.total ?? 0);
                     totalTrendData.push(usageDataGlobal.estimateUsage);
 
                     datasets.push({
@@ -242,7 +349,7 @@
                         maintainAspectRatio: false,
                         plugins: {
                             legend: { position: 'bottom' },
-                            title: { display: true, text: '累積データ使用量・月末予測 (GB)', font: { size: 14, weight: 'bold' } }
+                            title: { display: true, text: `${selectedMonth} 累積データ使用量 (GB)`, font: { size: 14, weight: 'bold' } }
                         },
                         scales: {
                             x: { stacked: true },
@@ -264,7 +371,7 @@
             const tbody = document.getElementById('daily-table-body');
             tbody.innerHTML = '';
 
-            dailyData.slice().reverse().forEach(row => {
+            monthData.slice().reverse().forEach(row => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/50 transition-colors';
                 let rowHtml = `<td class="px-3.5 py-2.5 font-semibold text-slate-800">${row.date}</td>`;

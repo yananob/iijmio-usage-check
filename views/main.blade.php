@@ -224,34 +224,34 @@
             landingChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['契約容量', '今月の使用予定', '過不足予定'],
+                    labels: ['契約容量', '今月の使用予定'],
                     datasets: [
                         {
                             label: '契約容量',
-                            data: [data.planDataVolume || 0, 0, 0],
+                            data: [data.planDataVolume || 0, 0],
                             backgroundColor: '#6366f1',
                             stack: 'plan',
                             borderRadius: 6
                         },
                         {
                             label: '当月使用量',
-                            data: [0, data.thisMonthTotalUsage || 0, 0],
+                            data: [0, data.thisMonthTotalUsage || 0],
                             backgroundColor: '#3b82f6',
                             stack: 'estimate',
                             borderRadius: 0
                         },
                         {
                             label: '残り消費予定',
-                            data: [0, data.remainingConsumption || 0, 0],
+                            data: [0, data.remainingConsumption || 0],
                             backgroundColor: '#a855f7',
                             stack: 'estimate',
-                            borderRadius: 6
+                            borderRadius: 0
                         },
                         {
                             label: '過不足予定',
-                            data: [0, 0, shortageOrSurplus],
+                            data: [0, shortageOrSurplus],
                             backgroundColor: shortageOrSurplus >= 0 ? '#10b981' : '#f43f5e',
-                            stack: 'surplus',
+                            stack: 'estimate',
                             borderRadius: 6
                         }
                     ]

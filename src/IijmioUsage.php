@@ -200,7 +200,7 @@ final class IijmioUsage
                     throw new \Exception("Could not get couponData: " . var_export($body, true));
                 }
                 $remainingDataVolume = [];
-                foreach (json_decode((string)$response->getBody(), true)["serviceInfoList"][0]["couponData"] as $couponData) {
+                foreach ($body["serviceInfoList"][0]["couponData"] as $couponData) {
                     $remainingDataVolume[$couponData["month"]] = $couponData["couponValue"];
                 }
 
@@ -273,7 +273,7 @@ final class IijmioUsage
                 continue;
             }
 
-            preg_match('/<input id="hdoCode" name="hdoCode" value="(hdo[0-9]+?)" type="hidden" value=""\/>/', $contentUser, $matches);
+            preg_match('/<input id="hdoCode" name="hdoCode" value="(hdo[0-9]+?)" type="hidden/', $contentUser, $matches);
             if (!$matches || count($matches) < 2) {
                 throw new \Exception("Could not get hdoCode usage: " . $contentUser);
             }
@@ -512,80 +512,16 @@ EOT;
         $details = [];
         foreach ($monthlyUsage as $user => $currentUsage) {
             $userKey = (string)$user;
-            // Baseline Rate calculation (R_baseline)
-            $rPrev = null;
-            if (!empty($prevHistory)) {
-                $prevDateStr = (string)array_key_first($prevHistory);
-                $prevUsages = $prevHistory[$prevDateStr];
-                $prevUserUsage = null;
-                if (is_object($prevUsages) && isset($prevUsages->$userKey)) {
-                    $prevUserUsage = (float)$prevUsages->$userKey;
-                } elseif (is_array($prevUsages) && isset($prevUsages[$userKey])) {
-                    $prevUserUsage = (float)$prevUsages[$userKey];
-                }
-
-                if ($prevUserUsage !== null) {
-                    $prevRecordDay = (new Carbon($prevDateStr, timezone: Consts::TIMEZONE))->day;
-                    $rPrev = $prevUserUsage / $prevRecordDay;
-                }
-            }
-
             $userPlanVolume = $this->getUserPlanDataVolume($userKey);
 
-            if ($rPrev !== null) {
-                $rBaseline = $rPrev;
-                $baselineSource = 'previous_month';
-            } else {
-                $rBaseline = ($userPlanVolume > 0.0) ? ($userPlanVolume / $daysInMonth) : 0.0;
-                $baselineSource = 'plan';
-            }
-
-            // Current Month Cumulative Rate (R_cumulative)
+            [$rBaseline, $baselineSource] = $this->calculateBaselineRate($prevHistory, $userPlanVolume, $daysInMonth, $userKey);
             $rCumulative = $currentDay > 0 ? ($currentUsage / $currentDay) : 0.0;
-
-            // Current Month Recent 7-Day Rate (R_recent)
-            $bestDateStr = null;
-            $bestUserPastUsage = null;
-            $bestDayDiff = null;
-            $minDistance = null;
-
-            foreach ($monthlyHistory as $dateStr => $usages) {
-                $userPastUsage = null;
-                if (is_object($usages) && isset($usages->$userKey)) {
-                    $userPastUsage = (float)$usages->$userKey;
-                } elseif (is_array($usages) && isset($usages[$userKey])) {
-                    $userPastUsage = (float)$usages[$userKey];
-                }
-
-                if ($userPastUsage !== null) {
-                    $pastCarbon = new Carbon($dateStr, timezone: Consts::TIMEZONE);
-                    $dayDiff = $currentDay - $pastCarbon->day;
-                    if ($dayDiff >= 1) {
-                        $distance = abs($dayDiff - 7);
-                        if ($minDistance === null || $distance < $minDistance || ($distance === $minDistance && $dayDiff > $bestDayDiff)) {
-                            $minDistance = $distance;
-                            $bestDayDiff = $dayDiff;
-                            $bestDateStr = $dateStr;
-                            $bestUserPastUsage = $userPastUsage;
-                        }
-                    }
-                }
-            }
-
-            $hasRecent = false;
-            $rRecent = null;
-            if ($bestDateStr !== null && $bestUserPastUsage !== null && $bestDayDiff !== null) {
-                $consumption = $currentUsage - $bestUserPastUsage;
-                $rRecent = max(0.0, $consumption / $bestDayDiff);
-                $hasRecent = true;
-            }
+            [$rRecent, $hasRecent, $bestDayDiff, $bestDateStr] = $this->calculateRecentRate($monthlyHistory, $userKey, $currentUsage, $currentDay);
 
             // Blend Recent and Cumulative for Current Month Rate (R_current_blended)
-            if ($hasRecent && $rRecent !== null) {
-                $rCurrentBlended = 0.5 * $rRecent + 0.5 * $rCumulative;
-            } else {
-                $rCurrentBlended = $rCumulative;
-            }
+            $rCurrentBlended = ($hasRecent && $rRecent !== null)
+                ? (0.5 * $rRecent + 0.5 * $rCumulative)
+                : $rCumulative;
 
             // Current Month Weight (W_current)
             $wCurrent = min(1.0, ($currentDay - 1) / 7.0);
@@ -599,7 +535,7 @@ EOT;
 
             $this->logger?->info("User {$userKey}: cumulative rate = {$rCumulative}GB/day, recent rate = " . ($rRecent !== null ? "{$rRecent}" : "N/A") . "GB/day, baseline rate = {$rBaseline}GB/day ({$baselineSource}), current weight = {$wCurrent}, projected rate = {$rProjected}GB/day. Estimated = {$estimatedUserUsage}GB");
 
-            $detail = [
+            $details[$userKey] = [
                 'type' => 'blended',
                 'currentDay' => $currentDay,
                 'currentUsage' => $currentUsage,
@@ -617,9 +553,79 @@ EOT;
             ];
 
             $totalEstimated += $estimatedUserUsage;
-            $details[$userKey] = $detail;
         }
 
         return [round($totalEstimated, 1), $details];
+    }
+
+    /**
+     * 前月実績またはプラン容量からベースライン利用率を計算する
+     *
+     * @return array{0: float, 1: string}
+     */
+    private function calculateBaselineRate(array $prevHistory, float $userPlanVolume, int $daysInMonth, string $userKey): array
+    {
+        if (!empty($prevHistory)) {
+            $prevDateStr = (string)array_key_first($prevHistory);
+            $prevUsages = $prevHistory[$prevDateStr];
+            $prevUserUsage = null;
+            if (is_object($prevUsages) && isset($prevUsages->$userKey)) {
+                $prevUserUsage = (float)$prevUsages->$userKey;
+            } elseif (is_array($prevUsages) && isset($prevUsages[$userKey])) {
+                $prevUserUsage = (float)$prevUsages[$userKey];
+            }
+
+            if ($prevUserUsage !== null) {
+                $prevRecordDay = (new Carbon($prevDateStr, timezone: Consts::TIMEZONE))->day;
+                return [$prevUserUsage / $prevRecordDay, 'previous_month'];
+            }
+        }
+
+        $rBaseline = ($userPlanVolume > 0.0) ? ($userPlanVolume / $daysInMonth) : 0.0;
+        return [$rBaseline, 'plan'];
+    }
+
+    /**
+     * 当月内の直近（目標7日前）の履歴から直近利用率を計算する
+     *
+     * @return array{0: ?float, 1: bool, 2: ?int, 3: ?string}
+     */
+    private function calculateRecentRate(array $monthlyHistory, string $userKey, float $currentUsage, int $currentDay): array
+    {
+        $bestDateStr = null;
+        $bestUserPastUsage = null;
+        $bestDayDiff = null;
+        $minDistance = null;
+
+        foreach ($monthlyHistory as $dateStr => $usages) {
+            $userPastUsage = null;
+            if (is_object($usages) && isset($usages->$userKey)) {
+                $userPastUsage = (float)$usages->$userKey;
+            } elseif (is_array($usages) && isset($usages[$userKey])) {
+                $userPastUsage = (float)$usages[$userKey];
+            }
+
+            if ($userPastUsage !== null) {
+                $pastCarbon = new Carbon($dateStr, timezone: Consts::TIMEZONE);
+                $dayDiff = $currentDay - $pastCarbon->day;
+                if ($dayDiff >= 1) {
+                    $distance = abs($dayDiff - 7);
+                    if ($minDistance === null || $distance < $minDistance || ($distance === $minDistance && $dayDiff > $bestDayDiff)) {
+                        $minDistance = $distance;
+                        $bestDayDiff = $dayDiff;
+                        $bestDateStr = $dateStr;
+                        $bestUserPastUsage = $userPastUsage;
+                    }
+                }
+            }
+        }
+
+        if ($bestDateStr !== null && $bestUserPastUsage !== null && $bestDayDiff !== null) {
+            $consumption = $currentUsage - $bestUserPastUsage;
+            $rRecent = max(0.0, $consumption / $bestDayDiff);
+            return [$rRecent, true, $bestDayDiff, $bestDateStr];
+        }
+
+        return [null, false, null, null];
     }
 }
