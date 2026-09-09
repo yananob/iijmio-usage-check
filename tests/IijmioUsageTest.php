@@ -408,8 +408,30 @@ EOT;
         $this->assertCount(2, $summary['users']);
         $this->assertSame(1.2, $summary['users'][0]['currentUsage']);
         $this->assertSame(0.2, $summary['users'][0]['dailyUsage']);
+        $this->assertArrayHasKey('avgDailyUsage', $summary['users'][0]);
         $this->assertSame(2.5, $summary['users'][1]['currentUsage']);
         $this->assertSame(0.5, $summary['users'][1]['dailyUsage']);
+        $this->assertArrayHasKey('avgDailyUsage', $summary['users'][1]);
+    }
+
+    public function testBuildSummaryIncludesAvgDailyUsage(): void
+    {
+        Carbon::setTestNow(new Carbon('2024-11-10 12:00:00', timezone: Consts::TIMEZONE));
+        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
+        $summary = Test::invokePrivateMethod(
+            $iijmio,
+            "buildSummary",
+            ["202411" => 2.5, "202412" => 5.0],
+            ["hdo12345678" => 1.0, "hdo22345678" => 2.0],
+            ["hdo12345678" => 0.1, "hdo22345678" => 0.2]
+        );
+
+        $this->assertArrayHasKey('users', $summary);
+        $this->assertCount(2, $summary['users']);
+        $this->assertArrayHasKey('avgDailyUsage', $summary['users'][0]);
+        $this->assertIsFloat($summary['users'][0]['avgDailyUsage']);
+        $this->assertArrayHasKey('avgDailyUsage', $summary['users'][1]);
+        $this->assertIsFloat($summary['users'][1]['avgDailyUsage']);
     }
 
     public function testGetDetailedStatsFromHistoryWhenTodayAndYesterdayMissing(): void
