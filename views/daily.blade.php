@@ -232,17 +232,12 @@
             const users = historyDataGlobal.users || {};
             const userKeys = Object.keys(users);
 
-            // Determine date range for selectedMonth (1日〜当日 or 1日〜月末)
+            // Determine date range for selectedMonth (1日〜月末)
             const [sYear, sMonth] = selectedMonth.split('-').map(Number);
-            let maxDay = 31;
-            if (selectedMonth === todayJst.yearMonth) {
-                maxDay = todayJst.day;
-            } else {
-                maxDay = new Date(sYear, sMonth, 0).getDate();
-            }
+            const daysInMonth = new Date(sYear, sMonth, 0).getDate();
 
             const monthDates = [];
-            for (let d = 1; d <= maxDay; d++) {
+            for (let d = 1; d <= daysInMonth; d++) {
                 const dStr = d < 10 ? '0' + d : '' + d;
                 monthDates.push(`${selectedMonth}-${dStr}`);
             }
@@ -259,9 +254,9 @@
                 return {
                     date: dateStr,
                     usages: {},
-                    total: 0,
+                    total: null,
                     cumulativeUsages: {},
-                    cumulativeTotal: 0
+                    cumulativeTotal: null
                 };
             });
 
@@ -281,7 +276,7 @@
                 const datasets = userKeys.map((key, idx) => ({
                     type: 'bar',
                     label: users[key] || key,
-                    data: monthData.map(d => d.usages[key] ?? 0),
+                    data: monthData.map(d => dailyMap[d.date] ? (d.usages[key] ?? 0) : null),
                     backgroundColor: colors[idx % colors.length],
                     borderRadius: 4,
                     stack: 'dailyStack'
@@ -312,7 +307,7 @@
                 const datasets = userKeys.map((key, idx) => ({
                     type: 'bar',
                     label: users[key] || key,
-                    data: monthData.map(d => (d.cumulativeUsages ? d.cumulativeUsages[key] : null) ?? d.usages[key] ?? 0),
+                    data: monthData.map(d => dailyMap[d.date] ? ((d.cumulativeUsages ? d.cumulativeUsages[key] : null) ?? d.usages[key] ?? 0) : null),
                     backgroundColor: colors[idx % colors.length],
                     borderRadius: 4,
                     stack: 'cumStack'
@@ -320,24 +315,25 @@
 
                 // Add End-of-Month prediction trendline only for current month
                 if (selectedMonth === todayJst.yearMonth && usageDataGlobal && usageDataGlobal.estimateUsage && monthData.length > 0) {
-                    labels.push('月末予測');
-                    datasets.forEach(ds => ds.data.push(null));
-
-                    const totalTrendData = monthData.map(d => d.cumulativeTotal ?? d.total ?? 0);
-                    totalTrendData.push(usageDataGlobal.estimateUsage);
+                    const totalDays = monthData.length;
+                    const estimateTotal = usageDataGlobal.estimateUsage;
+                    const trendLineData = monthData.map((d, index) => {
+                        const dayNum = index + 1;
+                        return Math.round((estimateTotal / totalDays) * dayNum * 100) / 100;
+                    });
 
                     datasets.push({
                         type: 'line',
                         label: `月末予測トレンド (${usageDataGlobal.estimateUsage} GB)`,
-                        data: totalTrendData,
+                        data: trendLineData,
                         borderColor: '#f59e0b',
                         backgroundColor: '#f59e0b',
                         borderWidth: 2.5,
                         borderDash: [6, 6],
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
+                        pointRadius: 2,
+                        pointHoverRadius: 5,
                         fill: false,
-                        tension: 0.1,
+                        tension: 0,
                         spanGaps: true
                     });
                 }
@@ -359,7 +355,9 @@
                 });
             }
 
-            // Render Table
+            // Render Table (filtering out future dates with no history)
+            const tableData = monthData.filter(d => dailyMap[d.date] || d.date <= todayJst.dateStr);
+
             const thead = document.getElementById('daily-table-head');
             let headHtml = `<tr><th class="px-3.5 py-2.5 text-left font-bold text-slate-500">日付</th>`;
             userKeys.forEach(k => {
@@ -371,7 +369,7 @@
             const tbody = document.getElementById('daily-table-body');
             tbody.innerHTML = '';
 
-            monthData.slice().reverse().forEach(row => {
+            tableData.slice().reverse().forEach(row => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/50 transition-colors';
                 let rowHtml = `<td class="px-3.5 py-2.5 font-semibold text-slate-800">${row.date}</td>`;

@@ -98,6 +98,7 @@
                                         <th scope="col" class="px-3.5 py-2.5 text-left font-bold text-slate-500">ユーザー名</th>
                                         <th scope="col" class="px-3.5 py-2.5 text-right font-bold text-slate-500">当月使用量</th>
                                         <th scope="col" class="px-3.5 py-2.5 text-right font-bold text-slate-500">本日増加量</th>
+                                        <th scope="col" class="px-3.5 py-2.5 text-right font-bold text-slate-500">1日平均</th>
                                         <th scope="col" class="px-3.5 py-2.5 text-right font-bold text-slate-500">月末予測</th>
                                         <th scope="col" class="px-3.5 py-2.5 text-right font-bold text-slate-500">契約容量</th>
                                     </tr>
@@ -206,6 +207,7 @@
                         <td class="px-3.5 py-2.5 font-semibold text-slate-800">${u.name}</td>
                         <td class="px-3.5 py-2.5 text-right text-slate-700">${u.currentUsage} GB</td>
                         <td class="px-3.5 py-2.5 text-right text-slate-500">+${u.dailyUsage} GB</td>
+                        <td class="px-3.5 py-2.5 text-right text-slate-600">${u.avgDailyUsage ?? 0} GB</td>
                         <td class="px-3.5 py-2.5 text-right font-bold text-indigo-600">${u.estimatedUserUsage} GB</td>
                         <td class="px-3.5 py-2.5 text-right text-slate-500">${u.planDataVolume} GB</td>
                     `;
