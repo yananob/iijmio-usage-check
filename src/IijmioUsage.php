@@ -402,11 +402,14 @@ final class IijmioUsage
 
             $thisMonthUsageList[] = "  {$userName}: {$monthlyUsageStr}GB  (+{$dailyUsageStr})";
 
+            $dailyRateVal = (float)($estimateDetails[$userKey]['avgConsumptionPerDay'] ?? 0.0);
+
             $usersList[] = [
                 'code' => $userKey,
                 'name' => $userName,
                 'currentUsage' => round($monthlyUsage, 2),
                 'dailyUsage' => round($dailyUsageVal, 2),
+                'avgDailyUsage' => round($dailyRateVal, 2),
                 'estimatedUserUsage' => round($estimatedUserUsageVal, 2),
                 'planDataVolume' => round($userPlanVol, 2),
             ];
