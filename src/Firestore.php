@@ -14,13 +14,7 @@ final class Firestore
             return self::$client;
         }
 
-        $serviceAccountKey = getenv('FIREBASE_SERVICE_ACCOUNT');
-        $firestoreOptions = [];
-        if ($serviceAccountKey) {
-            $firestoreOptions['keyFile'] = json_decode($serviceAccountKey, true);
-        }
-
-        self::$client = new FirestoreClient($firestoreOptions);
+        self::$client = new FirestoreClient();
         return self::$client;
     }
 }
