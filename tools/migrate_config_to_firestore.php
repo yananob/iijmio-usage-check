@@ -25,5 +25,4 @@ try {
     echo "Successfully migrated config to Firestore: {$collectionName}/config\n";
 } catch (\Exception $e) {
     echo "Error migrating config: " . $e->getMessage() . "\n";
-    echo "Note: This might fail if FIREBASE_SERVICE_ACCOUNT is not set or invalid in this environment.\n";
 }
