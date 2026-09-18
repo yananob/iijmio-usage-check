@@ -56,7 +56,6 @@ iijmio-usage-checker/
 | 変数名 | 説明 | 設定例・備考 |
 | :--- | :--- | :--- |
 | `APP_ENV` | 実行環境の識別 | `production`, `test`, `local` |
-| `FIREBASE_SERVICE_ACCOUNT` | Firestore 操作用の GCP サービスアカウントキー (JSON 文字列) | Cloud Functions デプロイ時や本番環境で設定 |
 | `LINE_TOKENS_N_TARGETS` | LINE 送信用の Channel Access Token と送信先 ID のマッピング (JSON) | 詳細構造は後述 |
 | `ADMIN_PASSWORD` | Web 設定画面 (`/config`) の Basic 認証パスワード | ユーザー名 `admin` |
 | `MOCK_FIRESTORE` | `1` に設定すると Firestore 接続を行わずローカルモックモードで動作 | ローカル開発・画面確認用 |
