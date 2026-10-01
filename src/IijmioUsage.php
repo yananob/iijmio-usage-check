@@ -377,8 +377,12 @@ final class IijmioUsage
             }
         }
 
+        $thisMonthTotalUsageVal = array_sum($monthlyUsages);
+        $remainingConsumption = $estimateUsage - $thisMonthTotalUsageVal;
+        $shortageOrSurplus = $totalRemainingDataVolume - $remainingConsumption;
+
         $isSend = false;
-        if ($planDataVolume > 0 && $estimateUsage > $planDataVolume * 0.9) {
+        if (($planDataVolume > 0 && $estimateUsage > $planDataVolume * 0.9) || $shortageOrSurplus < 1.0) {
             $isSend = true;
             $subject = "[WARN] Mobile usage is not good";
         } else {
@@ -416,7 +420,6 @@ final class IijmioUsage
         }
 
         $thisMonthUsageListStr = implode("\n", $thisMonthUsageList);
-        $thisMonthTotalUsageVal = array_sum($monthlyUsages);
         $thisMonthTotalUsage = sprintf("%.1f", $thisMonthTotalUsageVal);
         $dailyTotalUsageVal = array_sum($dailyUsages);
         $dailyTotalUsage = sprintf("%.1f", $dailyTotalUsageVal);
@@ -425,10 +428,7 @@ final class IijmioUsage
         $planDataVolumeStr = sprintf("%.1f", $planDataVolume);
         $totalRemainingDataVolumeStr = sprintf("%.1f", $totalRemainingDataVolume);
 
-        $remainingConsumption = $estimateUsage - $thisMonthTotalUsageVal;
         $remainingConsumptionStr = sprintf("%.1f", $remainingConsumption);
-
-        $shortageOrSurplus = $totalRemainingDataVolume - $remainingConsumption;
         $shortageOrSurplusStr = sprintf("%.1f", $shortageOrSurplus);
 
         $remainingDays = $now->daysInMonth() - $now->day;
