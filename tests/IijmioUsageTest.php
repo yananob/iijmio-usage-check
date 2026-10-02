@@ -131,6 +131,40 @@ Left: 6.5GB
 Web: https://example.com
 EOT;
         $this->assertEquals($expectedMessage, $message);
+
+        // アラートあり（月容量の90%以下かつ定期送信日でないが、月末見込み残容量が1GB未満）
+        Carbon::setTestNow(new Carbon('2024-11-11 12:00:00', timezone: Consts::TIMEZONE));
+        [$isSendAlert, $message] = Test::invokePrivateMethod(
+            $iijmio,
+            "judgeResult",
+            ["202411" => 0.5, "202412" => 3.5],
+            ["hdo12345678" => 0.9, "hdo22345678" => 1.0],
+            ["hdo12345678" => 0.1, "hdo22345678" => 0.2],
+        );
+
+        $this->assertTrue($isSendAlert);
+        $expectedMessage = <<<EOT
+[WARN] Mobile usage is not good
+
+Usage:
+  user1: 0.9GB  (+0.1)
+  user2: 1.0GB  (+0.2)
+  TOTAL: 1.9GB  (+0.3, 32%)
+
+EoM: 5.2GB  (87%)
+Plan: 6.0GB
+Left: 4.0GB
+残り消費予定: 3.3GB
+過不足予定: 0.7GB
+
+[予測根拠] (残り19日)
+  user1: 0.1/日 0.6/週 → 2.5GB
+  user2: 0.1/日 0.6/週 → 2.7GB
+  TOTAL: 0.2/日 1.2/週 → 5.2GB
+
+Web: https://example.com
+EOT;
+        $this->assertEquals($expectedMessage, $message);
     }
 
     public function testEstimateThisMonthUsage(): void
