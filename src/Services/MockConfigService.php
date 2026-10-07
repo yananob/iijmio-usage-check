@@ -150,6 +150,15 @@ EOT;
             'hdo22222222' => 'Bob',
         ];
 
-        return $this->processHistory($rawHistory, $userNames);
+        $planDataVolume = 0.0;
+        if (isset($this->configData['iijmio']['users']) && is_array($this->configData['iijmio']['users'])) {
+            foreach ($this->configData['iijmio']['users'] as $user) {
+                $planDataVolume += (float)($user['plan_data_volume'] ?? 0.0);
+            }
+        }
+
+        $historyData = $this->processHistory($rawHistory, $userNames);
+        $historyData['planDataVolume'] = round($planDataVolume, 2);
+        return $historyData;
     }
 }

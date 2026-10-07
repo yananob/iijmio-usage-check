@@ -122,10 +122,13 @@ final class FirestoreConfigService implements ConfigServiceInterface
     {
         $configData = $this->getConfig();
         $userNames = [];
+        $planDataVolume = 0.0;
         if (isset($configData['iijmio']['users']) && is_array($configData['iijmio']['users'])) {
             foreach ($configData['iijmio']['users'] as $code => $user) {
                 $name = is_array($user) ? ($user['name'] ?? $code) : (is_object($user) ? ($user->name ?? $code) : $user);
+                $vol = is_array($user) ? ($user['plan_data_volume'] ?? 0.0) : (is_object($user) ? ($user->plan_data_volume ?? 0.0) : 0.0);
                 $userNames[(string)$code] = (string)$name;
+                $planDataVolume += (float)$vol;
             }
         }
 
@@ -133,6 +136,8 @@ final class FirestoreConfigService implements ConfigServiceInterface
         $historyDoc = $firestore->collection($this->collectionName)->document('history')->snapshot();
         $rawHistory = $historyDoc->exists() ? (array)$historyDoc->data() : [];
 
-        return $this->processHistory($rawHistory, $userNames);
+        $historyData = $this->processHistory($rawHistory, $userNames);
+        $historyData['planDataVolume'] = round($planDataVolume, 2);
+        return $historyData;
     }
 }

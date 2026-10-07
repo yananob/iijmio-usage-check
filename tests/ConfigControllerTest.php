@@ -87,6 +87,8 @@ final class ConfigControllerTest extends TestCase
         $this->assertArrayHasKey('users', $data);
         $this->assertArrayHasKey('daily', $data);
         $this->assertArrayHasKey('monthly', $data);
+        $this->assertArrayHasKey('planDataVolume', $data);
+        $this->assertEquals(15.0, $data['planDataVolume']);
         $this->assertSame('Alice', $data['users']['hdo11111111']);
 
         $firstDaily = $data['daily'][0];
