@@ -267,6 +267,7 @@
             }
 
             const ctx = document.getElementById('dailyChart').getContext('2d');
+            const planDataVolume = (usageDataGlobal && usageDataGlobal.planDataVolume) || (historyDataGlobal && historyDataGlobal.planDataVolume) || 0;
 
             if (currentMode === 'daily') {
                 document.getElementById('chart-title').textContent = '日別・個人別使用量 (GB)';
@@ -281,6 +282,26 @@
                     borderRadius: 4,
                     stack: 'dailyStack'
                 }));
+
+                if (planDataVolume > 0 && monthData.length > 0) {
+                    const dailyPlanVolume = Math.round((planDataVolume / daysInMonth) * 100) / 100;
+                    const dailyPlanLineData = monthData.map(() => dailyPlanVolume);
+
+                    datasets.push({
+                        type: 'line',
+                        label: `1日あたりの契約容量 (${dailyPlanVolume} GB)`,
+                        data: dailyPlanLineData,
+                        borderColor: '#f43f5e',
+                        backgroundColor: '#f43f5e',
+                        borderWidth: 2,
+                        borderDash: [6, 6],
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        fill: false,
+                        tension: 0,
+                        spanGaps: true
+                    });
+                }
 
                 dailyChartInstance = new Chart(ctx, {
                     data: { labels: labels, datasets: datasets },
@@ -312,6 +333,25 @@
                     borderRadius: 4,
                     stack: 'cumStack'
                 }));
+
+                if (planDataVolume > 0 && monthData.length > 0) {
+                    const planLineData = monthData.map(() => planDataVolume);
+
+                    datasets.push({
+                        type: 'line',
+                        label: `契約容量 (${planDataVolume} GB)`,
+                        data: planLineData,
+                        borderColor: '#f43f5e',
+                        backgroundColor: '#f43f5e',
+                        borderWidth: 2,
+                        borderDash: [6, 6],
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        fill: false,
+                        tension: 0,
+                        spanGaps: true
+                    });
+                }
 
                 // Add End-of-Month prediction trendline only for current month
                 if (selectedMonth === todayJst.yearMonth && usageDataGlobal && usageDataGlobal.estimateUsage && monthData.length > 0) {
