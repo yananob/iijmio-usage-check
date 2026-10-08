@@ -471,16 +471,16 @@
         },
         {
             "name": "google/cloud-firestore",
-            "version": "v2.3.2",
+            "version": "v2.3.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/google-cloud-php-firestore.git",
-                "reference": "b906a9e8da16e5eeece2db68d88b2c886a590a9b"
+                "reference": "dde906a8b20c4202302b87e010e806ba04d6dd2a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/google-cloud-php-firestore/zipball/b906a9e8da16e5eeece2db68d88b2c886a590a9b",
-                "reference": "b906a9e8da16e5eeece2db68d88b2c886a590a9b",
+                "url": "https://api.github.com/repos/googleapis/google-cloud-php-firestore/zipball/dde906a8b20c4202302b87e010e806ba04d6dd2a",
+                "reference": "dde906a8b20c4202302b87e010e806ba04d6dd2a",
                 "shasum": ""
             },
             "require": {
@@ -523,9 +523,9 @@
             ],
             "description": "Cloud Firestore Client for PHP",
             "support": {
-                "source": "https://github.com/googleapis/google-cloud-php-firestore/tree/v2.3.2"
+                "source": "https://github.com/googleapis/google-cloud-php-firestore/tree/v2.3.3"
             },
-            "time": "2026-09-14T18:27:51+00:00"
+            "time": "2026-09-28T17:51:46+00:00"
         },
         {
             "name": "google/cloud-functions-framework",
@@ -1208,22 +1208,22 @@
         },
         {
             "name": "linecorp/line-bot-sdk",
-            "version": "v12.7.0",
+            "version": "v12.8.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/line/line-bot-sdk-php.git",
-                "reference": "689e59eab9986e48b842b3962b087d3fe5faa80c"
+                "reference": "b75cb5b099770f5eb61b5a8e65f59647d7e13697"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/line/line-bot-sdk-php/zipball/689e59eab9986e48b842b3962b087d3fe5faa80c",
-                "reference": "689e59eab9986e48b842b3962b087d3fe5faa80c",
+                "url": "https://api.github.com/repos/line/line-bot-sdk-php/zipball/b75cb5b099770f5eb61b5a8e65f59647d7e13697",
+                "reference": "b75cb5b099770f5eb61b5a8e65f59647d7e13697",
                 "shasum": ""
             },
             "require": {
                 "composer-runtime-api": "^2.0",
                 "guzzlehttp/guzzle": "^7.3",
-                "guzzlehttp/psr7": "^1.7 || ^2.0",
+                "guzzlehttp/psr7": "^1.7 || ^2.0 || ^3.0",
                 "php": "^8.2"
             },
             "require-dev": {
@@ -1232,7 +1232,7 @@
                 "phpmd/phpmd": "2.15.0",
                 "phpstan/phpstan": "^2.0",
                 "phpunit/phpunit": "^11.0",
-                "squizlabs/php_codesniffer": "4.0.1"
+                "squizlabs/php_codesniffer": "4.0.4"
             },
             "type": "library",
             "extra": {
@@ -1280,7 +1280,7 @@
                 "issues": "https://github.com/line/line-bot-sdk-php/issues",
                 "source": "https://github.com/line/line-bot-sdk-php"
             },
-            "time": "2026-07-07T06:09:15+00:00"
+            "time": "2026-09-29T04:25:36+00:00"
         },
         {
             "name": "monolog/monolog",
@@ -1389,16 +1389,16 @@
         },
         {
             "name": "nesbot/carbon",
-            "version": "3.14.1",
+            "version": "3.14.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/CarbonPHP/carbon.git",
-                "reference": "34e9109535165bf1d7ff17a610492372ae73a896"
+                "reference": "94cfc34887f07ab5c0efa07914c8f527544e3224"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/34e9109535165bf1d7ff17a610492372ae73a896",
-                "reference": "34e9109535165bf1d7ff17a610492372ae73a896",
+                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/94cfc34887f07ab5c0efa07914c8f527544e3224",
+                "reference": "94cfc34887f07ab5c0efa07914c8f527544e3224",
                 "shasum": ""
             },
             "require": {
@@ -1418,7 +1418,7 @@
                 "doctrine/orm": "^2.15.2 || ^3.0",
                 "friendsofphp/php-cs-fixer": "^v3.87.1",
                 "kylekatarnls/multi-tester": "^2.5.3",
-                "phpmd/phpmd": "^2.15.0",
+                "phpmd/phpmd": "^3.0@dev",
                 "phpstan/extension-installer": "^1.4.3",
                 "phpstan/phpstan": "^2.1.22",
                 "phpunit/phpunit": "^10.5.53",
@@ -1490,7 +1490,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-09-27T12:07:26+00:00"
+            "time": "2026-10-02T07:26:52+00:00"
         },
         {
             "name": "psr/cache",
