@@ -10,7 +10,7 @@
         "nesbot/carbon": "^3.8",
         "linecorp/line-bot-sdk": "^12.4",
         "monolog/monolog": "^3.10",
-        "eftec/bladeone": "^4.19"
+        "eftec/bladeone": "^5.0"
     },
     "scripts": {
         "start": [
