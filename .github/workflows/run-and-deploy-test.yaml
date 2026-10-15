@@ -64,6 +64,7 @@ jobs:
 
     - name: Google Cloud認証
       id: 'auth'
+      if: ${{ secrets.GCP_PROJECT_ID != '' }}
       uses: 'google-github-actions/auth@v3'
       with:
         workload_identity_provider: 'projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider'
@@ -74,6 +75,7 @@ jobs:
 
   prepare-deploy:
     needs: [test]
+    if: ${{ secrets.GCP_PROJECT_ID != '' }}
     runs-on: ubuntu-latest
     outputs:
       function_name: ${{ steps.set_name.outputs.function_name }}
@@ -89,6 +91,7 @@ jobs:
 
   deploy:
     needs: [prepare-deploy]
+    if: ${{ secrets.GCP_PROJECT_ID != '' }}
     uses: yananob/myapps-common/.github/workflows/deploy-cloud-functions.yaml@main
     with:
       function_name: ${{ needs.prepare-deploy.outputs.function_name }}
@@ -117,7 +120,7 @@ jobs:
 
   comment:
     needs: [deploy, prepare-deploy]
-    if: github.event_name == 'pull_request'
+    if: ${{ github.event_name == 'pull_request' && secrets.GCP_PROJECT_ID != '' }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
