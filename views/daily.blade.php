@@ -291,6 +291,7 @@
                         type: 'line',
                         label: `1日あたりの契約容量 (${dailyPlanVolume} GB)`,
                         data: dailyPlanLineData,
+                        stacked: false,
                         borderColor: '#f43f5e',
                         backgroundColor: '#f43f5e',
                         borderWidth: 2,
@@ -314,7 +315,7 @@
                         },
                         scales: {
                             x: { stacked: true },
-                            y: { stacked: true, beginAtZero: true }
+                            y: { beginAtZero: true }
                         }
                     }
                 });
@@ -341,6 +342,7 @@
                         type: 'line',
                         label: `契約容量 (${planDataVolume} GB)`,
                         data: planLineData,
+                        stacked: false,
                         borderColor: '#f43f5e',
                         backgroundColor: '#f43f5e',
                         borderWidth: 2,
@@ -353,29 +355,53 @@
                     });
                 }
 
-                // Add End-of-Month prediction trendline only for current month
-                if (selectedMonth === todayJst.yearMonth && usageDataGlobal && usageDataGlobal.estimateUsage && monthData.length > 0) {
-                    const totalDays = monthData.length;
-                    const estimateTotal = usageDataGlobal.estimateUsage;
-                    const trendLineData = monthData.map((d, index) => {
-                        const dayNum = index + 1;
-                        return Math.round((estimateTotal / totalDays) * dayNum * 100) / 100;
+                // Add End-of-Month prediction trendline based on daily landing prediction values
+                if (monthData.length > 0) {
+                    let initialEstimate = null;
+                    for (let i = 0; i < monthData.length; i++) {
+                        const rec = dailyMap[monthData[i].date];
+                        if (rec && rec.estimateUsage !== undefined && rec.estimateUsage !== null) {
+                            initialEstimate = rec.estimateUsage;
+                            break;
+                        }
+                    }
+                    if (initialEstimate === null && usageDataGlobal && usageDataGlobal.estimateUsage) {
+                        initialEstimate = usageDataGlobal.estimateUsage;
+                    }
+                    if (initialEstimate === null) {
+                        initialEstimate = planDataVolume;
+                    }
+
+                    let currentEstimate = initialEstimate;
+                    const trendLineData = monthData.map(d => {
+                        const rec = dailyMap[d.date];
+                        if (rec && rec.estimateUsage !== undefined && rec.estimateUsage !== null) {
+                            currentEstimate = rec.estimateUsage;
+                        }
+                        return currentEstimate;
                     });
 
-                    datasets.push({
-                        type: 'line',
-                        label: `月末予測トレンド (${usageDataGlobal.estimateUsage} GB)`,
-                        data: trendLineData,
-                        borderColor: '#f59e0b',
-                        backgroundColor: '#f59e0b',
-                        borderWidth: 2.5,
-                        borderDash: [6, 6],
-                        pointRadius: 2,
-                        pointHoverRadius: 5,
-                        fill: false,
-                        tension: 0,
-                        spanGaps: true
-                    });
+                    const displayEstimate = (selectedMonth === todayJst.yearMonth && usageDataGlobal && usageDataGlobal.estimateUsage)
+                        ? usageDataGlobal.estimateUsage
+                        : currentEstimate;
+
+                    if (trendLineData.some(v => v > 0)) {
+                        datasets.push({
+                            type: 'line',
+                            label: `月末予測トレンド (${displayEstimate} GB)`,
+                            data: trendLineData,
+                            stacked: false,
+                            borderColor: '#f59e0b',
+                            backgroundColor: '#f59e0b',
+                            borderWidth: 2.5,
+                            borderDash: [6, 6],
+                            pointRadius: 2,
+                            pointHoverRadius: 5,
+                            fill: false,
+                            tension: 0,
+                            spanGaps: true
+                        });
+                    }
                 }
 
                 dailyChartInstance = new Chart(ctx, {
@@ -389,7 +415,7 @@
                         },
                         scales: {
                             x: { stacked: true },
-                            y: { stacked: true, beginAtZero: true }
+                            y: { beginAtZero: true }
                         }
                     }
                 });

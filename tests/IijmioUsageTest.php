@@ -497,4 +497,31 @@ EOT;
         $this->assertSame(0.0, $summary['users'][0]['currentUsage']);
         $this->assertSame(0.0, $summary['users'][0]['dailyUsage']);
     }
+
+    public function testEstimateThisMonthUsageWithTargetDateStr(): void
+    {
+        Carbon::setTestNow(new Carbon('2025-02-15 12:00:00', timezone: Consts::TIMEZONE));
+
+        $history = [
+            "2025-02-05" => [
+                "hdo12345678" => 0.5,
+                "hdo22222222" => 1.0
+            ]
+        ];
+
+        $iijmio = new IijmioUsage(
+            iijmioConfig: $this->config->iijmio,
+            history: $history
+        );
+
+        [$result, $details] = $iijmio->estimateThisMonthUsage(
+            ["hdo12345678" => 1.0, "hdo22222222" => 2.0],
+            "2025-02-10"
+        );
+
+        $this->assertIsFloat($result);
+        $this->assertCount(2, $details);
+        $this->assertSame(10, $details['hdo12345678']['currentDay']);
+        $this->assertSame(18, $details['hdo12345678']['remainingDays']);
+    }
 }

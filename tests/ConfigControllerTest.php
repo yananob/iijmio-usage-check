@@ -94,6 +94,7 @@ final class ConfigControllerTest extends TestCase
         $firstDaily = $data['daily'][0];
         $this->assertArrayHasKey('cumulativeUsages', $firstDaily);
         $this->assertArrayHasKey('cumulativeTotal', $firstDaily);
+        $this->assertArrayHasKey('estimateUsage', $firstDaily);
     }
 
     public function testHandlePostSaveMock(): void
