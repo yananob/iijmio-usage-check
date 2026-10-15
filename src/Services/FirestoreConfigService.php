@@ -136,7 +136,19 @@ final class FirestoreConfigService implements ConfigServiceInterface
         $historyDoc = $firestore->collection($this->collectionName)->document('history')->snapshot();
         $rawHistory = $historyDoc->exists() ? (array)$historyDoc->data() : [];
 
-        $historyData = $this->processHistory($rawHistory, $userNames);
+        $iijmio = null;
+        if (!empty($configData)) {
+            $configObj = (object)json_decode((string)json_encode($configData));
+            $iijmio = new IijmioUsage(
+                $configObj->iijmio,
+                (int)($configObj->alert->send_usage_each_n_days ?? 10),
+                null,
+                $rawHistory,
+                $configObj->alert->web_url ?? null
+            );
+        }
+
+        $historyData = $this->processHistory($rawHistory, $userNames, $iijmio);
         $historyData['planDataVolume'] = round($planDataVolume, 2);
         return $historyData;
     }

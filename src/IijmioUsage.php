@@ -490,14 +490,21 @@ EOT;
         ];
     }
 
-    private function estimateThisMonthUsage(array $monthlyUsage): array
+    /**
+     * @param array<string, float> $monthlyUsage
+     * @param string|null $targetDateStr
+     * @return array{0: float, 1: array<string, mixed>}
+     */
+    public function estimateThisMonthUsage(array $monthlyUsage, ?string $targetDateStr = null): array
     {
-        $now = new Carbon(timezone: Consts::TIMEZONE);
-        $todayStr = $now->format('Y-m-d');
-        $currentYearMonth = $now->format('Y-m');
-        $prevYearMonth = $now->copy()->subMonth()->format('Y-m');
-        $daysInMonth = $now->daysInMonth();
-        $currentDay = $now->day;
+        $targetCarbon = $targetDateStr !== null
+            ? new Carbon($targetDateStr, timezone: Consts::TIMEZONE)
+            : new Carbon(timezone: Consts::TIMEZONE);
+        $todayStr = $targetCarbon->format('Y-m-d');
+        $currentYearMonth = $targetCarbon->format('Y-m');
+        $prevYearMonth = $targetCarbon->copy()->subMonth()->format('Y-m');
+        $daysInMonth = $targetCarbon->daysInMonth();
+        $currentDay = $targetCarbon->day;
 
         $monthlyHistory = [];
         $prevHistory = [];

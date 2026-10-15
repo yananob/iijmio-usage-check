@@ -47,9 +47,10 @@ trait ConfigServiceTrait
      *
      * @param array<string, mixed> $rawHistory
      * @param array<string, string> $userNames
+     * @param \App\IijmioUsage|null $iijmio
      * @return array<string, mixed>
      */
-    protected function processHistory(array $rawHistory, array $userNames): array
+    protected function processHistory(array $rawHistory, array $userNames, ?\App\IijmioUsage $iijmio = null): array
     {
         ksort($rawHistory);
 
@@ -84,12 +85,25 @@ trait ConfigServiceTrait
                 $totalDaily += $diff;
             }
 
+            $estimateUsage = null;
+            if ($iijmio !== null) {
+                $fullDateUsages = $dateUsages;
+                foreach ($userNames as $uCode => $uName) {
+                    if (!isset($fullDateUsages[$uCode])) {
+                        $fullDateUsages[$uCode] = 0.0;
+                    }
+                }
+                [$estVal, ] = $iijmio->estimateThisMonthUsage($fullDateUsages, (string)$dateStr);
+                $estimateUsage = round($estVal, 2);
+            }
+
             $dailyList[] = [
                 'date' => $dateStr,
                 'usages' => $dailyCalculated,
                 'total' => round($totalDaily, 3),
                 'cumulativeUsages' => $dateUsages,
                 'cumulativeTotal' => round(array_sum($dateUsages), 3),
+                'estimateUsage' => $estimateUsage,
             ];
 
             $monthlyLatest[$currentMonth] = $dateUsages;
