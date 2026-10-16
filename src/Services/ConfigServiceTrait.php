@@ -29,15 +29,15 @@ trait ConfigServiceTrait
 
         return [
             'iijmio' => [
-                'mio_id' => (string)($iijmio['mio_id'] ?? ''),
-                'password' => (string)($iijmio['password'] ?? ''),
+                'mio_id' => is_scalar($iijmio['mio_id'] ?? null) ? (string)$iijmio['mio_id'] : '',
+                'password' => is_scalar($iijmio['password'] ?? null) ? (string)$iijmio['password'] : '',
                 'users' => $users,
             ],
             'alert' => [
-                'bot' => (string)($alert['bot'] ?? ''),
-                'target' => (string)($alert['target'] ?? ''),
-                'send_usage_each_n_days' => (int)($alert['send_usage_each_n_days'] ?? 0),
-                'web_url' => (string)($alert['web_url'] ?? ''),
+                'bot' => is_scalar($alert['bot'] ?? null) ? (string)$alert['bot'] : '',
+                'target' => is_scalar($alert['target'] ?? null) ? (string)$alert['target'] : '',
+                'send_usage_each_n_days' => max(0, (int)($alert['send_usage_each_n_days'] ?? 0)),
+                'web_url' => is_scalar($alert['web_url'] ?? null) ? (string)$alert['web_url'] : '',
             ],
         ];
     }
@@ -97,12 +97,14 @@ trait ConfigServiceTrait
                 $estimateUsage = round($estVal, 2);
             }
 
+            $cumTotal = array_sum($dateUsages);
+
             $dailyList[] = [
                 'date' => $dateStr,
                 'usages' => $dailyCalculated,
                 'total' => round($totalDaily, 3),
                 'cumulativeUsages' => $dateUsages,
-                'cumulativeTotal' => round(array_sum($dateUsages), 3),
+                'cumulativeTotal' => round($cumTotal, 3),
                 'estimateUsage' => $estimateUsage,
             ];
 

@@ -48,13 +48,10 @@ final class IijmioUsage
         $todayStr = $now->format('Y-m-d');
         $yesterdayStr = $now->copy()->subDay()->format('Y-m-d');
 
-        $sortedHistory = $this->history;
-        ksort($sortedHistory);
-
         $targetDate = null;
-        if (isset($sortedHistory[$todayStr])) {
+        if (isset($this->history[$todayStr])) {
             $targetDate = $todayStr;
-        } elseif (isset($sortedHistory[$yesterdayStr])) {
+        } elseif (isset($this->history[$yesterdayStr])) {
             $targetDate = $yesterdayStr;
         }
 
@@ -63,7 +60,7 @@ final class IijmioUsage
         $savedTotalRemainingDataVolume = null;
 
         if ($targetDate !== null) {
-            $targetUsages = (array)$sortedHistory[$targetDate];
+            $targetUsages = (array)$this->history[$targetDate];
 
             if (isset($targetUsages['coupon'])) {
                 $savedTotalRemainingDataVolume = (float)$targetUsages['coupon'];
@@ -81,7 +78,9 @@ final class IijmioUsage
 
             // Find preceding record date before $targetDate
             $prevDate = null;
-            foreach (array_keys($sortedHistory) as $dateStr) {
+            $historyKeys = array_keys($this->history);
+            sort($historyKeys);
+            foreach ($historyKeys as $dateStr) {
                 $dateStr = (string)$dateStr;
                 if ($dateStr < $targetDate) {
                     $prevDate = $dateStr;
@@ -91,7 +90,7 @@ final class IijmioUsage
             }
 
             if ($prevDate !== null) {
-                $prevUsages = (array)$sortedHistory[$prevDate];
+                $prevUsages = (array)$this->history[$prevDate];
                 $targetMonth = substr($targetDate, 0, 7);
                 $prevMonth = substr($prevDate, 0, 7);
 
@@ -175,6 +174,9 @@ final class IijmioUsage
                 );
                 $this->checkResponse($response);
                 $loginBody = json_decode((string)$response->getBody(), true);
+                if (!is_array($loginBody)) {
+                    throw new \Exception("Invalid login response format.");
+                }
                 if (!empty($loginBody['error'])) {
                     throw new \Exception("Login failed with error: " . $loginBody['error']);
                 }
@@ -193,6 +195,9 @@ final class IijmioUsage
                 );
                 $this->checkResponse($response);
                 $body = json_decode((string)$response->getBody(), true);
+                if (!is_array($body)) {
+                    throw new \Exception("Invalid top page response format.");
+                }
                 if (!empty($body['error'])) {
                     throw new \Exception("Could not get couponData due to error: " . $body['error']);
                 }
@@ -322,35 +327,66 @@ final class IijmioUsage
         return $result;
     }
 
+    /**
+     * 安全にiijmioConfig->usersからユーザープロパティを取得するヘルパー
+     */
+    private function getUserProperty(string $userKey, string $prop, mixed $default = null): mixed
+    {
+        $users = $this->iijmioConfig->users ?? null;
+        if ($users === null) {
+            return $default;
+        }
+
+        $userInfo = null;
+        if (is_object($users) && isset($users->$userKey)) {
+            $userInfo = $users->$userKey;
+        } elseif (is_array($users) && isset($users[$userKey])) {
+            $userInfo = $users[$userKey];
+        }
+
+        if ($userInfo === null) {
+            return $default;
+        }
+
+        if (is_object($userInfo) && isset($userInfo->$prop)) {
+            return $userInfo->$prop;
+        }
+
+        if (is_array($userInfo) && isset($userInfo[$prop])) {
+            return $userInfo[$prop];
+        }
+
+        if ($prop === 'name' && is_string($userInfo)) {
+            return $userInfo;
+        }
+
+        return $default;
+    }
+
     private function getUserName(string $user): string
     {
-        if (isset($this->iijmioConfig->users->$user)) {
-            $userInfo = $this->iijmioConfig->users->$user;
-            if (is_object($userInfo) && isset($userInfo->name)) {
-                return (string)$userInfo->name;
-            }
-            if (is_array($userInfo) && isset($userInfo['name'])) {
-                return (string)$userInfo['name'];
-            }
-            if (is_string($userInfo)) {
-                return $userInfo;
-            }
-        }
-        return $user;
+        $name = $this->getUserProperty($user, 'name');
+        return is_string($name) && $name !== '' ? $name : $user;
     }
 
     private function getUserPlanDataVolume(string $user): float
     {
-        if (isset($this->iijmioConfig->users->$user)) {
-            $userInfo = $this->iijmioConfig->users->$user;
-            if (is_object($userInfo) && isset($userInfo->plan_data_volume)) {
-                return (float)$userInfo->plan_data_volume;
-            }
-            if (is_array($userInfo) && isset($userInfo['plan_data_volume'])) {
-                return (float)$userInfo['plan_data_volume'];
-            }
+        $vol = $this->getUserProperty($user, 'plan_data_volume');
+        return is_numeric($vol) ? (float)$vol : 0.0;
+    }
+
+    /**
+     * 履歴レコードのデータ構造（Object/Array）からユーザーの利用量を抽出するヘルパー
+     */
+    private function extractUsageValue(object|array $usages, string $userKey): ?float
+    {
+        if (is_object($usages) && isset($usages->$userKey)) {
+            return (float)$usages->$userKey;
         }
-        return 0.0;
+        if (is_array($usages) && isset($usages[$userKey])) {
+            return (float)$usages[$userKey];
+        }
+        return null;
     }
 
     private function judgeResult(array $remainingDataVolume, array $monthlyUsages, array $dailyUsages): array
@@ -389,7 +425,7 @@ final class IijmioUsage
             $subject = "[INFO] Mobile usage report";
         }
         $now = new Carbon(timezone: Consts::TIMEZONE);
-        if ($now->day % $this->sendEachNDays === 0) {
+        if ($this->sendEachNDays > 0 && $now->day % $this->sendEachNDays === 0) {
             $isSend = true;
         }
 
@@ -578,12 +614,7 @@ EOT;
         if (!empty($prevHistory)) {
             $prevDateStr = (string)array_key_first($prevHistory);
             $prevUsages = $prevHistory[$prevDateStr];
-            $prevUserUsage = null;
-            if (is_object($prevUsages) && isset($prevUsages->$userKey)) {
-                $prevUserUsage = (float)$prevUsages->$userKey;
-            } elseif (is_array($prevUsages) && isset($prevUsages[$userKey])) {
-                $prevUserUsage = (float)$prevUsages[$userKey];
-            }
+            $prevUserUsage = $this->extractUsageValue($prevUsages, $userKey);
 
             if ($prevUserUsage !== null) {
                 $prevRecordDay = (new Carbon($prevDateStr, timezone: Consts::TIMEZONE))->day;
@@ -608,12 +639,7 @@ EOT;
         $minDistance = null;
 
         foreach ($monthlyHistory as $dateStr => $usages) {
-            $userPastUsage = null;
-            if (is_object($usages) && isset($usages->$userKey)) {
-                $userPastUsage = (float)$usages->$userKey;
-            } elseif (is_array($usages) && isset($usages[$userKey])) {
-                $userPastUsage = (float)$usages[$userKey];
-            }
+            $userPastUsage = $this->extractUsageValue($usages, $userKey);
 
             if ($userPastUsage !== null) {
                 $pastCarbon = new Carbon($dateStr, timezone: Consts::TIMEZONE);
