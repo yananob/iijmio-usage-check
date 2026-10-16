@@ -524,4 +524,40 @@ EOT;
         $this->assertSame(10, $details['hdo12345678']['currentDay']);
         $this->assertSame(18, $details['hdo12345678']['remainingDays']);
     }
+
+    public function testSendEachNDaysZeroDoesNotThrowException(): void
+    {
+        Carbon::setTestNow(new Carbon('2024-11-11 12:00:00', timezone: Consts::TIMEZONE));
+        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio, sendEachNDays: 0);
+
+        [$isSendAlert, $message] = Test::invokePrivateMethod(
+            $iijmio,
+            "judgeResult",
+            ["202411" => 0.5, "202412" => 6.0],
+            ["hdo12345678" => 0.9, "hdo22345678" => 1.0],
+            ["hdo12345678" => 0.1, "hdo22345678" => 0.2]
+        );
+
+        $this->assertFalse($isSendAlert);
+        $this->assertStringContainsString("[INFO] Mobile usage report", $message);
+    }
+
+    public function testUserConfigAsArray(): void
+    {
+        $arrayConfig = (object)[
+            'mio_id' => 'MA123',
+            'password' => 'pass',
+            'users' => [
+                'hdo111' => ['name' => 'ArrayUser1', 'plan_data_volume' => 5.0],
+                'hdo222' => ['name' => 'ArrayUser2', 'plan_data_volume' => 10.0],
+            ]
+        ];
+
+        $iijmio = new IijmioUsage(iijmioConfig: $arrayConfig);
+        $userName = Test::invokePrivateMethod($iijmio, 'getUserName', 'hdo111');
+        $userVol = Test::invokePrivateMethod($iijmio, 'getUserPlanDataVolume', 'hdo111');
+
+        $this->assertSame('ArrayUser1', $userName);
+        $this->assertSame(5.0, $userVol);
+    }
 }

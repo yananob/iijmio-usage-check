@@ -43,19 +43,13 @@ final class ConfigController
 
         // API エンドポイント: 当月利用状況サマリー
         if ($path === '/api/usage' || $action === 'api_usage') {
-            if (!headers_sent()) {
-                header('Content-Type: application/json');
-            }
             $refresh = ($queryParams['refresh'] ?? null) === '1';
-            return json_encode($service->getUsageSummary($refresh), JSON_UNESCAPED_UNICODE) ?: '{}';
+            return $this->jsonResponse($service->getUsageSummary($refresh));
         }
 
         // API エンドポイント: 履歴データ
         if ($path === '/api/history' || $action === 'api_history') {
-            if (!headers_sent()) {
-                header('Content-Type: application/json');
-            }
-            return json_encode($service->getHistoryData(), JSON_UNESCAPED_UNICODE) ?: '{}';
+            return $this->jsonResponse($service->getHistoryData());
         }
 
         $views = dirname(__DIR__, 2) . '/views';
@@ -120,5 +114,19 @@ final class ConfigController
             "appEnv" => $appEnv,
             "currentPage" => "main",
         ]);
+    }
+
+    /**
+     * JSON APIレスポンスを生成する
+     *
+     * @param array<string, mixed> $data
+     * @return string
+     */
+    private function jsonResponse(array $data): string
+    {
+        if (!headers_sent()) {
+            header('Content-Type: application/json');
+        }
+        return json_encode($data, JSON_UNESCAPED_UNICODE) ?: '{}';
     }
 }

@@ -56,7 +56,15 @@ final class EventHandler
         }
 
         if ($isSendAlert) {
-            $lineTokensAndTargets = json_decode((string)getenv('LINE_TOKENS_N_TARGETS'), false);
+            $rawLineEnv = getenv('LINE_TOKENS_N_TARGETS');
+            if (!is_string($rawLineEnv) || $rawLineEnv === '') {
+                throw new \RuntimeException('LINE_TOKENS_N_TARGETS environment variable is not set.');
+            }
+            $lineTokensAndTargets = json_decode($rawLineEnv, false);
+            if (!is_object($lineTokensAndTargets) || !isset($lineTokensAndTargets->tokens) || !isset($lineTokensAndTargets->target_ids)) {
+                throw new \RuntimeException('LINE_TOKENS_N_TARGETS environment variable format is invalid.');
+            }
+
             $botName = $config->alert->bot ?? null;
             if (!is_string($botName) || $botName === '') {
                 throw new \RuntimeException('Unable to get config->alert->bot value.');
@@ -64,7 +72,7 @@ final class EventHandler
             if (!isset($lineTokensAndTargets->tokens->{$botName})) {
                 throw new \RuntimeException("Access token not found for bot key: {$botName}");
             }
-            $accessToken = $lineTokensAndTargets->tokens->{$botName};
+            $accessToken = (string)$lineTokensAndTargets->tokens->{$botName};
             $line = new Line($accessToken);
 
             $targetName = $config->alert->target ?? null;
@@ -74,7 +82,7 @@ final class EventHandler
             if (!isset($lineTokensAndTargets->target_ids->{$targetName})) {
                 throw new \RuntimeException("Target ID not found for target key: {$targetName}");
             }
-            $target = $lineTokensAndTargets->target_ids->{$targetName} ?? null;
+            $target = (string)$lineTokensAndTargets->target_ids->{$targetName};
 
             $line->sendPush(target: $target, message: $message);
         }

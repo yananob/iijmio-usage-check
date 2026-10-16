@@ -23,6 +23,10 @@ final class Line
 
     public function sendPush(string $target, string $message): void
     {
+        if (trim($target) === '') {
+            throw new \InvalidArgumentException("Target ID must not be empty.");
+        }
+
         $request = new PushMessageRequest([
             'to' => $target,
             'messages' => [
