@@ -41,6 +41,23 @@ final class ConfigController
         $page = $queryParams['page'] ?? null;
         $action = $queryParams['action'] ?? null;
 
+        // PWA 静的アセット (manifest.json, sw.js, アイコン)
+        $pwaRoutes = [
+            '/manifest.json' => 'application/manifest+json',
+            '/sw.js' => 'text/javascript',
+            '/icon-192.png' => 'image/png',
+            '/icon-512.png' => 'image/png',
+            '/icon.svg' => 'image/svg+xml',
+        ];
+
+        if (isset($pwaRoutes[$path])) {
+            $publicDir = dirname(__DIR__, 2) . '/public';
+            $filePath = $publicDir . $path;
+            if (file_exists($filePath)) {
+                return $this->fileResponse($filePath, $pwaRoutes[$path]);
+            }
+        }
+
         // API エンドポイント: 当月利用状況サマリー
         if ($path === '/api/usage' || $action === 'api_usage') {
             $refresh = ($queryParams['refresh'] ?? null) === '1';
@@ -128,5 +145,21 @@ final class ConfigController
             header('Content-Type: application/json');
         }
         return json_encode($data, JSON_UNESCAPED_UNICODE) ?: '{}';
+    }
+
+    /**
+     * ファイルレスポンスを生成する
+     *
+     * @param string $filePath
+     * @param string $contentType
+     * @return string
+     */
+    private function fileResponse(string $filePath, string $contentType): string
+    {
+        if (!headers_sent()) {
+            header('Content-Type: ' . $contentType);
+            header('Cache-Control: public, max-age=86400');
+        }
+        return file_get_contents($filePath) ?: '';
     }
 }
