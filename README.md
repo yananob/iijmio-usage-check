@@ -16,6 +16,9 @@ IIJmio のギガプラン等のデータ利用量を自動巡回（クローリ�
   - **日別グラフ画面 (`/daily`)**: ユーザーごとの日別消費量・累計消費量の時系列チャート。
   - **月別グラフ画面 (`/monthly`)**: 過去月ごとの消費実績比較チャート。
   - **設定画面 (`/config`)**: IIJmio ログイン情報、ユーザーごとの契約容量（2GB, 5GB, 10GB, 15GB等）、LINE アラート送信先の設定およびプレビュー確認。
+- **PWA (Progressive Web App) 対応**:
+  - Web App Manifest (`manifest.json`) や Service Worker (`sw.js`)、各種アイコン (`icon-192.png`, `icon-512.png`, `icon.svg`) を搭載。
+  - iOS (Safari) や Android (Chrome) などのスマホ・PCで「ホーム画面に追加」を行うことで、ネイティブアプリのようにインストールして利用可能。
 
 ---
 
@@ -32,6 +35,7 @@ IIJmio のギガプラン等のデータ利用量を自動巡回（クローリ�
 ```text
 iijmio-usage-checker/
 ├── docs/                 # 設計方針ドキュメント
+├── public/               # PWA静的アセット (manifest.json, sw.js, アイコン)
 ├── src/                  # アプリケーションソースコード
 │   ├── Controllers/      # HTTPコントローラー (ConfigController)
 │   ├── Handlers/         # イベントハンドラー (EventHandler)

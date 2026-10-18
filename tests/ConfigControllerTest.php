@@ -227,4 +227,46 @@ final class ConfigControllerTest extends TestCase
         $this->assertStringContainsString('<title>IIJmio Usage Checker Config</title>', $html);
         $this->assertStringContainsString('MA1234567', $html);
     }
+
+    public function testPwaAssetRoutes(): void
+    {
+        $controller = new ConfigController();
+
+        // Manifest
+        $request = new ServerRequest('GET', '/manifest.json');
+        $content = $controller->handle($request);
+        $manifest = json_decode($content, true);
+        $this->assertIsArray($manifest);
+        $this->assertSame('IIJmio Usage Checker', $manifest['name']);
+        $this->assertSame('standalone', $manifest['display']);
+
+        // Service Worker
+        $request = new ServerRequest('GET', '/sw.js');
+        $swContent = $controller->handle($request);
+        $this->assertStringContainsString('CACHE_NAME', $swContent);
+
+        // Icon SVG
+        $request = new ServerRequest('GET', '/icon.svg');
+        $svgContent = $controller->handle($request);
+        $this->assertStringContainsString('<svg', $svgContent);
+
+        // Icon PNG (192 and 512)
+        $request = new ServerRequest('GET', '/icon-192.png');
+        $pngContent192 = $controller->handle($request);
+        $this->assertNotEmpty($pngContent192);
+
+        $request = new ServerRequest('GET', '/icon-512.png');
+        $pngContent512 = $controller->handle($request);
+        $this->assertNotEmpty($pngContent512);
+    }
+
+    public function testViewsIncludePwaHead(): void
+    {
+        $controller = new ConfigController();
+        $request = (new ServerRequest('GET', '/'))->withQueryParams(['mock' => '1']);
+        $html = $controller->handle($request);
+
+        $this->assertStringContainsString('<link rel="manifest" href="manifest.json">', $html);
+        $this->assertStringContainsString('serviceWorker', $html);
+    }
 }
