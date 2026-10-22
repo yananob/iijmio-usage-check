@@ -95,66 +95,64 @@
                             </button>
                         </div>
 
-                        <div class="overflow-hidden border border-slate-200/80 rounded-xl shadow-sm bg-white">
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full divide-y divide-slate-200" id="users-table">
-                                    <thead class="bg-slate-50">
-                                        <tr>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">HDO Code (e.g. hdo12345678)</th>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Name</th>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Plan Data Volume (GB)</th>
-                                            <th scope="col" class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="users-body" class="divide-y divide-slate-200">
-                                    @php $userIndex = 0; @endphp
-                                    @if(isset($config['iijmio']['users']) && is_array($config['iijmio']['users']))
-                                        @foreach($config['iijmio']['users'] as $code => $user)
+                        <!-- Users Header (Desktop) -->
+                        <div class="hidden md:grid md:grid-cols-12 md:gap-4 px-4 py-2.5 bg-slate-100/80 rounded-lg text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            <div class="md:col-span-4">HDO Code (e.g. hdo12345678)</div>
+                            <div class="md:col-span-3">Name</div>
+                            <div class="md:col-span-3">Plan Data Volume (GB)</div>
+                            <div class="md:col-span-2 text-right">Action</div>
+                        </div>
+
+                        <!-- Users List / Cards Container -->
+                        <div id="users-container" class="space-y-4">
+                        @php $userIndex = 0; @endphp
+                        @if(isset($config['iijmio']['users']) && is_array($config['iijmio']['users']))
+                            @foreach($config['iijmio']['users'] as $code => $user)
+                            @php
+                                $name = is_array($user) ? ($user['name'] ?? '') : (is_object($user) ? ($user->name ?? '') : $user);
+                                $vol = is_array($user) ? ($user['plan_data_volume'] ?? '') : (is_object($user) ? ($user->plan_data_volume ?? '') : '');
+                            @endphp
+                            <div class="user-row bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 items-stretch md:items-center transition-colors hover:border-slate-300">
+                                <div class="md:col-span-4">
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 md:hidden">HDO Code (e.g. hdo12345678)</label>
+                                    <input type="text" name="iijmio[users][{{ $userIndex }}][code]" value="{{ $code }}" required placeholder="hdo12345678"
+                                           class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2.5 px-3.5 border transition">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 md:hidden">Name</label>
+                                    <input type="text" name="iijmio[users][{{ $userIndex }}][name]" value="{{ $name }}" required placeholder="Name"
+                                           class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2.5 px-3.5 border transition">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 md:hidden">Plan Data Volume (GB)</label>
+                                    <select name="iijmio[users][{{ $userIndex }}][plan_data_volume]" required
+                                            class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2.5 px-3.5 border transition">
+                                        <option value="" disabled {{ $vol === '' ? 'selected' : '' }}>Select...</option>
                                         @php
-                                            $name = is_array($user) ? ($user['name'] ?? '') : (is_object($user) ? ($user->name ?? '') : $user);
-                                            $vol = is_array($user) ? ($user['plan_data_volume'] ?? '') : (is_object($user) ? ($user->plan_data_volume ?? '') : '');
+                                            $options = [2, 5, 10, 15];
+                                            if ($vol !== '' && !in_array((int)$vol, $options)) {
+                                                $options[] = (float)$vol;
+                                                sort($options);
+                                            }
                                         @endphp
-                                        <tr class="hover:bg-slate-50/50 transition-colors">
-                                            <td class="px-4 py-3.5 whitespace-nowrap">
-                                                <input type="text" name="iijmio[users][{{ $userIndex }}][code]" value="{{ $code }}" required placeholder="hdo12345678"
-                                                       class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2 px-3 border transition">
-                                            </td>
-                                            <td class="px-4 py-3.5 whitespace-nowrap">
-                                                <input type="text" name="iijmio[users][{{ $userIndex }}][name]" value="{{ $name }}" required placeholder="Name"
-                                                       class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2 px-3 border transition">
-                                            </td>
-                                            <td class="px-4 py-3.5 whitespace-nowrap">
-                                                <select name="iijmio[users][{{ $userIndex }}][plan_data_volume]" required
-                                                        class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2 px-3 border transition">
-                                                    <option value="" disabled {{ $vol === '' ? 'selected' : '' }}>Select...</option>
-                                                    @php
-                                                        $options = [2, 5, 10, 15];
-                                                        if ($vol !== '' && !in_array((int)$vol, $options)) {
-                                                            $options[] = (float)$vol;
-                                                            sort($options);
-                                                        }
-                                                    @endphp
-                                                    @foreach($options as $v)
-                                                        <option value="{{ $v }}" {{ (float)$vol === (float)$v ? 'selected' : '' }}>{{ $v }} GB</option>
-                                                    @endforeach
-                                                </select>
-                                            </td>
-                                            <td class="px-4 py-3.5 whitespace-nowrap text-right">
-                                                <button type="button" onclick="removeRow(this)"
-                                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors active:scale-95">
-                                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                    Remove
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        @php $userIndex++; @endphp
+                                        @foreach($options as $v)
+                                            <option value="{{ $v }}" {{ (float)$vol === (float)$v ? 'selected' : '' }}>{{ $v }} GB</option>
                                         @endforeach
-                                    @endif
-                                    </tbody>
-                                </table>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-2 flex justify-end pt-1 md:pt-0">
+                                    <button type="button" onclick="removeRow(this)"
+                                            class="w-full md:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors active:scale-95">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Remove
+                                    </button>
+                                </div>
                             </div>
+                            @php $userIndex++; @endphp
+                            @endforeach
+                        @endif
                         </div>
                     </div>
 
@@ -236,44 +234,47 @@
     <script>
         let userIndex = {{ $userIndex }};
         document.getElementById('add-user').addEventListener('click', function() {
-            const tbody = document.getElementById('users-body');
-            const tr = document.createElement('tr');
-            tr.className = "hover:bg-slate-50/50 transition-colors";
-            tr.innerHTML = `
-                <td class="px-4 py-3 whitespace-nowrap">
+            const container = document.getElementById('users-container');
+            const row = document.createElement('div');
+            row.className = "user-row bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 items-stretch md:items-center transition-colors hover:border-slate-300";
+            row.innerHTML = `
+                <div class="md:col-span-4">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 md:hidden">HDO Code (e.g. hdo12345678)</label>
                     <input type="text" name="iijmio[users][${userIndex}][code]" value="" required placeholder="hdo12345678"
-                           class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2 px-3 border transition">
-                </td>
-                <td class="px-4 py-3 whitespace-nowrap">
+                           class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2.5 px-3.5 border transition">
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 md:hidden">Name</label>
                     <input type="text" name="iijmio[users][${userIndex}][name]" value="" required placeholder="Name"
-                           class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2 px-3 border transition">
-                </td>
-                <td class="px-4 py-3 whitespace-nowrap">
+                           class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2.5 px-3.5 border transition">
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 md:hidden">Plan Data Volume (GB)</label>
                     <select name="iijmio[users][${userIndex}][plan_data_volume]" required
-                            class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2 px-3 border transition">
+                            class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2.5 px-3.5 border transition">
                         <option value="" disabled selected>Select...</option>
                         <option value="2">2 GB</option>
                         <option value="5">5 GB</option>
                         <option value="10">10 GB</option>
                         <option value="15">15 GB</option>
                     </select>
-                </td>
-                <td class="px-4 py-3 whitespace-nowrap text-right">
+                </div>
+                <div class="md:col-span-2 flex justify-end pt-1 md:pt-0">
                     <button type="button" onclick="removeRow(this)"
-                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors active:scale-95">
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                            class="w-full md:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors active:scale-95">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                         Remove
                     </button>
-                </td>
+                </div>
             `;
-            tbody.appendChild(tr);
+            container.appendChild(row);
             userIndex++;
         });
 
         function removeRow(btn) {
-            btn.closest('tr').remove();
+            btn.closest('.user-row').remove();
         }
 
         function setAction(action) {
