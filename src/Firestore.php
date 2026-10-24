@@ -14,7 +14,9 @@ final class Firestore
             return self::$client;
         }
 
-        self::$client = new FirestoreClient();
+        self::$client = new FirestoreClient([
+            'transport' => 'rest',
+        ]);
         return self::$client;
     }
 }
