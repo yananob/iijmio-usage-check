@@ -24,7 +24,7 @@ IIJmio のギガプラン等のデータ利用量を自動巡回（クローリ�
 
 ## アーキテクチャと構成
 
-本アプリケーションは Google Cloud Functions (PHP 8.2+) と Cloud Firestore を基盤としています。
+本アプリケーションは Google Cloud Functions (PHP 8.4+) と Cloud Firestore を基盤としています。
 
 - **エントリポイント (`index.php`)**:
   - `main_http`: Web リクエストおよび非同期 JSON API エンドポイントを処理します。
