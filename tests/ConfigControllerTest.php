@@ -29,6 +29,11 @@ final class ConfigControllerTest extends TestCase
         $this->assertStringContainsString('<title>IIJmio Usage Checker Config</title>', $html);
         $this->assertStringContainsString('MA1234567', $html);
         $this->assertStringContainsString('Alice', $html);
+        // Verify plan options include 2, 5, 10, 15, 25, 35, 45, 55 GB
+        foreach ([2, 5, 10, 15, 25, 35, 45, 55] as $capacity) {
+            $this->assertStringContainsString('<option value="' . $capacity . '"', $html);
+            $this->assertStringContainsString($capacity . ' GB', $html);
+        }
     }
 
     public function testHandleGetRequestDailyMock(): void

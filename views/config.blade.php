@@ -129,7 +129,7 @@
                                             class="block w-full rounded-lg border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm py-2.5 px-3.5 border transition">
                                         <option value="" disabled {{ $vol === '' ? 'selected' : '' }}>Select...</option>
                                         @php
-                                            $options = [2, 5, 10, 15];
+                                            $options = [2, 5, 10, 15, 25, 35, 45, 55];
                                             if ($vol !== '' && !in_array((int)$vol, $options)) {
                                                 $options[] = (float)$vol;
                                                 sort($options);
@@ -257,6 +257,10 @@
                         <option value="5">5 GB</option>
                         <option value="10">10 GB</option>
                         <option value="15">15 GB</option>
+                        <option value="25">25 GB</option>
+                        <option value="35">35 GB</option>
+                        <option value="45">45 GB</option>
+                        <option value="55">55 GB</option>
                     </select>
                 </div>
                 <div class="md:col-span-2 flex justify-end pt-1 md:pt-0">
