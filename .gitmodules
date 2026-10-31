@@ -1,8 +1,8 @@
 [submodule "_myapps-common"]
 	path = _myapps-common
-	url = https://github.com/yananob/myapps-common.git
+	url = github.com:yananob/myapps-common
 	branch = main
 [submodule "_template"]
 	path = _template
-	url = https://github.com/yananob/_template-cloudfunctions.git
+	url = github.com:yananob/_template-cloudfunctions
 	branch = test
