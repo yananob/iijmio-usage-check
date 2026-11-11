@@ -560,4 +560,39 @@ EOT;
         $this->assertSame('ArrayUser1', $userName);
         $this->assertSame(5.0, $userVol);
     }
+
+    public function testCalculateBaselineRateWithZeroRecordDayFallback(): void
+    {
+        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
+        $prevHistory = [];
+        [$rBaseline, $source] = Test::invokePrivateMethod(
+            $iijmio,
+            'calculateBaselineRate',
+            $prevHistory,
+            10.0,
+            30,
+            'hdo12345678'
+        );
+
+        $this->assertEquals(10.0 / 30, $rBaseline);
+        $this->assertSame('plan', $source);
+    }
+
+    public function testCalculateRecentRateReturnsNullWhenNoValidHistory(): void
+    {
+        $iijmio = new IijmioUsage(iijmioConfig: $this->config->iijmio);
+        [$rRecent, $hasRecent, $bestDayDiff, $bestDateStr] = Test::invokePrivateMethod(
+            $iijmio,
+            'calculateRecentRate',
+            [],
+            'hdo12345678',
+            1.5,
+            10
+        );
+
+        $this->assertNull($rRecent);
+        $this->assertFalse($hasRecent);
+        $this->assertNull($bestDayDiff);
+        $this->assertNull($bestDateStr);
+    }
 }
