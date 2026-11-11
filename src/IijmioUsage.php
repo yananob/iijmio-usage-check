@@ -618,7 +618,9 @@ EOT;
 
             if ($prevUserUsage !== null) {
                 $prevRecordDay = (new Carbon($prevDateStr, timezone: Consts::TIMEZONE))->day;
-                return [$prevUserUsage / $prevRecordDay, 'previous_month'];
+                if ($prevRecordDay > 0) {
+                    return [$prevUserUsage / $prevRecordDay, 'previous_month'];
+                }
             }
         }
 
@@ -656,7 +658,7 @@ EOT;
             }
         }
 
-        if ($bestDateStr !== null && $bestUserPastUsage !== null && $bestDayDiff !== null) {
+        if ($bestDateStr !== null && $bestUserPastUsage !== null && $bestDayDiff !== null && $bestDayDiff > 0) {
             $consumption = $currentUsage - $bestUserPastUsage;
             $rRecent = max(0.0, $consumption / $bestDayDiff);
             return [$rRecent, true, $bestDayDiff, $bestDateStr];

@@ -16,9 +16,11 @@ trait ConfigServiceTrait
         if (isset($params['iijmio']['users']) && is_array($params['iijmio']['users'])) {
             foreach ($params['iijmio']['users'] as $user) {
                 if (is_array($user) && !empty($user['code']) && !empty($user['name'])) {
+                    $rawVolume = $user['plan_data_volume'] ?? 0;
+                    $volume = is_numeric($rawVolume) ? max(0.0, (float)$rawVolume) : 0.0;
                     $users[(string)$user['code']] = [
                         'name' => (string)$user['name'],
-                        'plan_data_volume' => (float)($user['plan_data_volume'] ?? 0),
+                        'plan_data_volume' => $volume,
                     ];
                 }
             }
@@ -88,9 +90,10 @@ trait ConfigServiceTrait
             $estimateUsage = null;
             if ($iijmio !== null) {
                 $fullDateUsages = $dateUsages;
-                foreach ($userNames as $uCode => $uName) {
-                    if (!isset($fullDateUsages[$uCode])) {
-                        $fullDateUsages[$uCode] = 0.0;
+                foreach (array_keys($userNames) as $uCode) {
+                    $uCodeStr = (string)$uCode;
+                    if (!isset($fullDateUsages[$uCodeStr])) {
+                        $fullDateUsages[$uCodeStr] = 0.0;
                     }
                 }
                 [$estVal, ] = $iijmio->estimateThisMonthUsage($fullDateUsages, (string)$dateStr);

@@ -69,12 +69,7 @@ final class ConfigController
             return $this->jsonResponse($service->getHistoryData());
         }
 
-        $views = dirname(__DIR__, 2) . '/views';
-        $cache = '/tmp/cache';
-        if (!is_dir($cache)) {
-            mkdir($cache, 0777, true);
-        }
-        $blade = new BladeOne($views, $cache, BladeOne::MODE_AUTO);
+        $blade = $this->createBladeRenderer();
 
         $appEnv = getenv('APP_ENV') ?: 'unknown';
 
@@ -131,6 +126,21 @@ final class ConfigController
             "appEnv" => $appEnv,
             "currentPage" => "main",
         ]);
+    }
+
+    /**
+     * BladeOne テンプレートレンダラーを初期化・生成する
+     *
+     * @return BladeOne
+     */
+    private function createBladeRenderer(): BladeOne
+    {
+        $views = dirname(__DIR__, 2) . '/views';
+        $cache = '/tmp/cache';
+        if (!is_dir($cache)) {
+            mkdir($cache, 0777, true);
+        }
+        return new BladeOne($views, $cache, BladeOne::MODE_AUTO);
     }
 
     /**

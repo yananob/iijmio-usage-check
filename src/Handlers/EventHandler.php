@@ -29,7 +29,11 @@ final class EventHandler
             throw new \RuntimeException("Config not found in Firestore: {$collectionName}/config");
         }
 
-        $config = (object)json_decode((string)json_encode($doc->data()));
+        $decoded = json_decode((string)json_encode($doc->data()));
+        if (!is_object($decoded)) {
+            throw new \RuntimeException("Failed to parse config data as object.");
+        }
+        $config = $decoded;
 
         $historyDoc = $firestore->collection($collectionName)->document('history')->snapshot();
         $history = $historyDoc->exists() ? (array)$historyDoc->data() : [];

@@ -197,6 +197,25 @@ final class ConfigControllerTest extends TestCase
         $this->assertSame($expected, $parsed);
     }
 
+    public function testMockConfigServiceParseConfigFromParamsWithNegativeAndInvalidVolume(): void
+    {
+        $service = new MockConfigService();
+        $parsed = $service->parseConfigFromParams([
+            'iijmio' => [
+                'mio_id' => 'MA5555555',
+                'password' => 'pass123',
+                'users' => [
+                    ['code' => 'hdo111', 'name' => 'User1', 'plan_data_volume' => '-5'],
+                    ['code' => 'hdo222', 'name' => 'User2', 'plan_data_volume' => 'invalid'],
+                ]
+            ],
+            'alert' => []
+        ]);
+
+        $this->assertSame(0.0, $parsed['iijmio']['users']['hdo111']['plan_data_volume']);
+        $this->assertSame(0.0, $parsed['iijmio']['users']['hdo222']['plan_data_volume']);
+    }
+
     public function testFirestoreConfigServiceProcessHistoryIgnoresCouponKey(): void
     {
         $service = new \App\Services\FirestoreConfigService('test_collection');
