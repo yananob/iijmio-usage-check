@@ -46,14 +46,17 @@ final class FirestoreConfigService implements ConfigServiceInterface
     public function generatePreview(array $configData): string
     {
         $firestore = Firestore::getClient();
-        $configObj = (object)json_decode((string)json_encode($configData));
+        $configObj = json_decode((string)json_encode($configData));
+        if (!is_object($configObj) || !isset($configObj->iijmio)) {
+            return "Error: Invalid configuration format.";
+        }
         $logger = new Logger("preview");
         $historyDoc = $firestore->collection($this->collectionName)->document('history')->snapshot();
         $history = $historyDoc->exists() ? (array)$historyDoc->data() : [];
 
         $iijmio = new IijmioUsage(
             $configObj->iijmio,
-            $configObj->alert->send_usage_each_n_days,
+            (int)($configObj->alert->send_usage_each_n_days ?? 10),
             $logger,
             $history,
             $configObj->alert->web_url ?? null
@@ -79,7 +82,10 @@ final class FirestoreConfigService implements ConfigServiceInterface
         }
 
         $firestore = Firestore::getClient();
-        $configObj = (object)json_decode((string)json_encode($configData));
+        $configObj = json_decode((string)json_encode($configData));
+        if (!is_object($configObj) || !isset($configObj->iijmio)) {
+            return [];
+        }
         $logger = new Logger("usage_summary");
         $historyDoc = $firestore->collection($this->collectionName)->document('history')->snapshot();
         $history = $historyDoc->exists() ? (array)$historyDoc->data() : [];
@@ -138,14 +144,16 @@ final class FirestoreConfigService implements ConfigServiceInterface
 
         $iijmio = null;
         if (!empty($configData)) {
-            $configObj = (object)json_decode((string)json_encode($configData));
-            $iijmio = new IijmioUsage(
-                $configObj->iijmio,
-                (int)($configObj->alert->send_usage_each_n_days ?? 10),
-                null,
-                $rawHistory,
-                $configObj->alert->web_url ?? null
-            );
+            $configObj = json_decode((string)json_encode($configData));
+            if (is_object($configObj) && isset($configObj->iijmio)) {
+                $iijmio = new IijmioUsage(
+                    $configObj->iijmio,
+                    (int)($configObj->alert->send_usage_each_n_days ?? 10),
+                    null,
+                    $rawHistory,
+                    $configObj->alert->web_url ?? null
+                );
+            }
         }
 
         $historyData = $this->processHistory($rawHistory, $userNames, $iijmio);
