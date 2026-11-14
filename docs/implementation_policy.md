@@ -77,7 +77,9 @@ $firestore = new FirestoreClient();
 - **環境の識別**:
   - テスト環境では、本番環境と区別しやすくするため、画面上部に現在のベースパスとリクエストパスをオーバーレイで表示します。
 - **デプロイとシークレット**:
-  デプロイは GitHub Actions (`.github/workflows/deploy-*.yaml`) で自動化します。機密性の高い環境変数（`LINE_TOKENS_N_TARGETS` 等）は、GitHub Secrets に保存され、デプロイ時に Cloud Functions の環境変数として設定されます。
+  デプロイは GitHub Actions (`.github/workflows/deploy-*.yaml` や `run-and-deploy-test.yaml`) で自動化します。機密性の高い環境変数（`LINE_TOKENS_N_TARGETS` 等）は、GitHub Secrets に保存され、デプロイ時に Cloud Functions の環境変数として設定されます。
+- **Dependabot / 外部フォーク PR での CI 動作**:
+  Dependabot や外部フォークからの PR では GitHub Secrets（`GCP_PROJECT_ID` 等）がセキュリティ上参照できません。そのため、Google Cloud 認証 (`google-github-actions/auth`) やデプロイ処理などの GCP 依存ステップ/ジョブには `if: ${{ secrets.GCP_PROJECT_ID != '' }}` を指定し、シークレットがない場合でもユニットテストのみが正常に実行・通過できるようにガードします。
 - 処理状況が分かるように、適宜ログを出力する。ログ出力には monolog を使う。
 
 ---
